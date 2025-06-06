@@ -1,0 +1,36 @@
+{
+  "name": "doh_js",
+  "version": "0.1.85",
+  "description": "Core Doh JS Library",
+  "main": "index.js",
+  "browser": "deploy.js",
+  "exports": {
+    ".": "./index.js"
+  },
+  "type": "module",
+  "dependencies": {
+    "acorn": "^8.11.3",
+    "acorn-walk": "^8.3.2",
+    "axios": "^1.7.4",
+    "esbuild": "^0.20.1",
+    "esbuild-plugins-node-modules-polyfill": "^1.7.0",
+    "neo-blessed": "^0.2.0",
+    "semver": "^7.6.3",
+    "tar-fs": "^3.0.6",
+    "uuid": "^9.0.1",
+    "yaml": "^2.3.4"
+  },
+  "scripts": {
+    "ensure": "ensure.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://gitlab.com/disrupter/doh_js.git"
+  },
+  "author": "Disrupter L.L.C.",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://gitlab.com/disrupter/doh_js/issues"
+  },
+  "homepage": "https://deploydoh.com"
+}

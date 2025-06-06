@@ -1,0 +1,11 @@
+{
+  "version": "0.2.1a",
+  "removals": [
+    "^/analytics_client.js",
+    "^/analytics/analytics_client.js",
+    "^/analytics/dohball.json",
+    "^/hmr.js",
+    "^/socket.io.doh.yaml",
+    "^/socket_handler.js"
+  ]
+}

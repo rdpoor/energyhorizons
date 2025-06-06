@@ -1,0 +1,22 @@
+## Native Node.js modules ##
+http: nodejs?? http from 'http'
+https: nodejs?? https from 'https'
+cors: nodejs?? cors from 'cors'
+
+## npm modules ##
+express:
+  install: npm:express
+  load: nodejs?? express from 'express'
+
+compression:
+  install: npm:compression
+  load: nodejs?? compression from 'compression'
+
+jsonwebtoken:
+  install: npm:jsonwebtoken
+  load: nodejs?? import jwt from "jsonwebtoken"
+
+bcrypt:
+  install: npm:bcrypt
+  load: nodejs?? import bcrypt from "bcrypt"
+

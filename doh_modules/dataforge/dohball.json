@@ -1,0 +1,9 @@
+{
+  "version": "0.0.63a",
+  "removals": [
+    "^/db_dataforge.js",
+    "^/indexProperty.sql",
+    "^/jsyaml_dataforge.js",
+    "^/nodejs_YAML_dataforge.js"
+  ]
+}

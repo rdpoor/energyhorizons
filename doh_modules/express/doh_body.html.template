@@ -1,0 +1,10 @@
+{{doh_curtain_element}}
+
+<script type="module">
+  import "{{deploy.js}}";
+  await Doh.load({{dependencies}});
+
+  if (Doh.pod.hmr?.enabled) await Doh.load('optional hmr_browser');
+
+  {{doh_curtain_hider}}
+</script>

@@ -1,0 +1,62 @@
+#######################
+## Core dependencies ##
+## Version: 3.0.0    ##
+#######################
+
+doh_js:
+  load:
+  - browser?? jquery
+  - object
+  - html
+
+jquery:
+  # install: npm:jquery
+  load:
+  - browser?? https://code.jquery.com/jquery-3.7.1.min.js
+  # - browser?? global import jQuery from 'jquery'
+  # - browser?? global import $ from 'jquery'
+
+jqueryui:
+  # install: npm:jquery-ui
+  load:
+  - browser?? await jquery
+  - browser?? optional https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css
+  - browser?? optional https://code.jquery.com/ui/1.13.2/jquery-ui.min.js
+  # - browser?? global import jqueryui from 'jquery-ui'
+
+semver:
+  install: npm:semver
+  load: import semver from 'semver'
+
+os: nodejs?? import os from 'os'
+path: nodejs?? import path from 'path'
+fs: nodejs?? import fs from 'fs'
+util: nodejs?? import * as util from 'util'
+
+yaml:
+  install: npm:yaml
+  load: import * as YAML from 'yaml'
+  
+axios:
+  install: npm:axios
+  load: import axios from 'axios'
+
+tarFs:
+  install: npm:tar-fs
+  load: nodejs?? import * as tarFs from 'tar-fs'
+
+zlib:
+  load: import zlib from 'zlib'
+
+uuid:
+  install: npm:uuid
+  load: "import { v4: uuidv4 } from 'uuid'"
+
+esbuild:
+  install: npm:esbuild
+  load: import esbuild from 'esbuild'
+
+esbuild-plugins-node-modules-polyfill:
+  install: npm:esbuild-plugins-node-modules-polyfill
+  load: import nodeModulesPolyfillPlugin from 'esbuild-plugins-node-modules-polyfill'
+

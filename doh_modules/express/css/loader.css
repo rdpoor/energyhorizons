@@ -1,0 +1,42 @@
+body {
+  background-color: rgb(33, 33, 34);
+}
+
+/* Curtain for hiding the page while loading */
+.curtain {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10000;
+  background-color: rgba(33, 33, 34, 0.5); /* Semi-transparent background */
+  backdrop-filter: blur(100px); /* Add blur effect */
+  -webkit-backdrop-filter: blur(100px); /* For Safari compatibility */
+}
+
+/* Basic styling for the spinner */
+.loader_spinner {
+  border: 4px solid rgba(0, 0, 0, 0.1);  /* Light grey border */
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border-left-color: #09f;  /* Blue color for the spinner part */
+  z-index: 10001;
+
+  /* Centering the spinner */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+
+  /* Animation */
+  animation: loader_spin 1s linear infinite;
+}
+
+
+/* Keyframes for continuous rotation */
+@keyframes loader_spin {
+  0% { transform: translate(-50%, -50%) rotate(0deg); }
+  100% { transform: translate(-50%, -50%) rotate(360deg); }
+}

@@ -1,0 +1,16 @@
+{
+  "version": "0.2.51a",
+  "removals": [
+    "/docs/building/ajax.md",
+    "/docs/building/database.md",
+    "/docs/building/dataforge.md",
+    "/docs/building/greenlock-ssl.md",
+    "/docs/building/html.md",
+    "/docs/building/redbird-proxy.md",
+    "/docs/building/router.md",
+    "/docs/building/users.md",
+    "^/dohdashboard.js",
+    "^/docs/core/hmr.md",
+    "^/docs/tools/database.md"
+  ]
+}

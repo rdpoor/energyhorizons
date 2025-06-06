@@ -1,0 +1,77 @@
+#######################
+## Core Pod Settings ##
+#######################
+
+pod_version: 0.0.1
+
+moc:
+  pod_version: IsAny
+  inherits: IsArray
+  dohball_host: IsArray
+  dohball_deployment: IsObject
+  host_load: IsArray
+  packager_ignore: IsArray
+  always_esbuild: IsBoolean
+  always_compile_pod: IsBoolean
+  always_reinstall_dohballs: IsBoolean
+  always_upgrade_dohballs: IsBoolean
+  always_restore_dohballs: IsBoolean
+  always_update_npm_dependencies: IsBoolean
+  cleanup_orphaned_packages: IsBoolean
+  performance: IsObject
+  pm2: IsObject
+
+# Default deployment settings
+dohball_host:
+  - https://deploydoh.com
+  #- file://
+
+dohball_deployment:
+  moc:
+    expose_packages: IsStringOrFalse
+    expose_specific_packages: IsArray
+    expose_doh_js: IsBoolean
+    ignore_paths: IsArray
+    compile_manifest: IsBoolean
+  expose_packages: false
+  expose_doh_js: false
+  compile_manifest: false
+
+# files and directories to ignore when packaging
+packager_ignore:
+  - doh_js
+  - .doh
+  - node_modules
+  - .git
+  - .vscode
+  - dist
+
+# "always" settings refer to "always do this when the pod is run"
+always_esbuild: false
+# "always_compile_pod" will always compile the pod when the pod is run
+#   (normally, the pod is only compiled when autopackager is run)
+always_compile_pod: false
+
+# "always_reinstall_dohballs" will always reinstall all dohballs when the pod is run
+always_reinstall_dohballs: false
+
+# "always_upgrade_dohballs" will always *upgrade* all dohballs when the pod is run
+always_upgrade_dohballs: false
+
+# "always_restore_dohballs" will always restore all modified files from dohballs when the pod is run
+always_restore_dohballs: false
+
+# "always_update_npm_dependencies" will always use npm install to make dependencies satisfy their version requirements
+#    from Doh.Install() statements or install: keys in doh.yaml files
+always_update_npm_dependencies: false
+
+performance:
+  track_all_packages: false
+
+#pm2:
+#  name: doh  # Check here, then in express_config.hostname, then in pod.name, then default to 'doh' if not specified
+#  args: run no-pack  # set to empty string to disable
+#  pm2 args are passed as listed in the --help output of pm2 `pm2 start --help`
+
+export_load:
+  - doh_js

@@ -1,0 +1,174 @@
+### Upguide: Chokidar File Watcher with Lifecycle Hooks and State Persistence
+
+**Generated:** 2023-09-23
+**Input Request:** Create a chokidar watcher for the whole project that exposes lifecycle hooks for files and tracks file state in a simple JSON that is persisted to disk. Track mtime, additions, and removals (git-like). Provide a unified "update notice" system with subscription capabilities for files, folders, and glob patterns.
+**Primary Target(s):** doh_js/watcher.js
+**Related Guides:** None
+
+---
+
+#### 1. Intent
+
+* **Goal:** Implement a robust file watching system using chokidar that tracks file states and provides a subscription-based event system.
+* **Scope:** Create a new module in `doh_js/watcher.js` that provides file watching capabilities, state tracking, and event hooks.
+* **Assumptions:** 
+  * Node.js environment with chokidar available (will need to be added as a dependency)
+  * Integration with Doh's module system
+  * Needs to work with Doh's path resolution system
+
+---
+
+#### 2. Prerequisite Analysis & Context Gathering (Targeted)
+
+* **Action:** Analyze the existing codebase for file system interactions and event handling patterns.
+  * **MCP Tool Suggestion:** `mcp_codebase_search { query: "file system events or watching" }`
+  * **MCP Tool Suggestion:** `mcp_codebase_read_docs { query: "DohPath file system" }`
+* **Action:** Understand how Doh handles event subscriptions and hooks.
+  * **MCP Tool Suggestion:** `mcp_codebase_search { query: "event subscription patterns in Doh" }`
+* **Action:** Research how to persist data efficiently in the Doh ecosystem.
+  * **MCP Tool Suggestion:** `mcp_codebase_search { query: "file persistence or JSON storage" }`
+
+---
+
+#### 3. Implementation Plan (Step-by-Step, Localized)
+
+* **Step 1:** Install chokidar as a dependency.
+  * **Action:** Add chokidar to the project dependencies.
+  * **MCP Tool Suggestion:** `mcp_codebase_search { query: "how to add npm dependencies in Doh" }`
+  * **Note:** Ensure chokidar is listed in the module's install instructions (via Doh.Install) so it auto-installs on new systems.
+  * **Status:** COMPLETED
+
+* **Step 2:** Create the basic `FileWatcher` module structure in `doh_js/watcher.js`.
+  * **Action:** Set up the module with Doh's module pattern.
+  * **Structure:**
+    * Define the `FileWatcher` module using `Doh.Module`
+    * Set up chokidar import through Doh.load
+    * Create configuration options with defaults
+  * **MCP Tool Suggestion:** `mcp_codebase_search { query: "Doh.Module examples with external dependencies" }`
+  * **Status:** COMPLETED
+
+* **Step 3:** Implement the file state tracking system.
+  * **Action:** Create a data structure for tracking file states.
+  * **Structure:**
+    * Use a Map or Object to store file paths as keys
+    * Each entry contains: mtime, status (added, modified, removed), and other metadata
+    * Implement git-like tracking of removed files
+  * **MCP Tool Suggestion:** `mcp_codebase_search { query: "object pattern in Doh" }`
+  * **Status:** COMPLETED
+
+* **Step 4:** Implement state persistence mechanism.
+  * **Action:** Create functions to save and load the file state to/from disk.
+  * **Structure:**
+    * Define a default location for the state file (e.g., `.doh/watcher_state.json`)
+    * Implement functions to serialize and deserialize the state
+    * Implement debounced saving to minimize disk writes while ensuring changes are persisted promptly
+  * **MCP Tool Suggestion:** `mcp_codebase_search { query: "file writing in Doh" }`
+  * **Status:** COMPLETED
+
+* **Step 5:** Implement the event subscription system.
+  * **Action:** Create a subscription mechanism for file events.
+  * **Structure:**
+    * Support subscribing to specific files, directories, or glob patterns
+    * Track subscriptions and efficiently match events to subscribers
+    * Implement event types (add, change, unlink) and unified update notices
+  * **MCP Tool Suggestion:** `mcp_codebase_search { query: "event subscription patterns in Doh" }`
+  * **Status:** COMPLETED
+
+* **Step 6:** Set up the chokidar watcher with appropriate options.
+  * **Action:** Configure chokidar with optimal settings for the Doh environment.
+  * **Structure:**
+    * Configure chokidar to watch the entire project
+    * Set up proper ignore patterns (e.g., `.git`, `node_modules`)
+    * Handle performance considerations for large projects
+  * **MCP Tool Suggestion:** `mcp_codebase_search { query: "chokidar configuration best practices" }`
+  * **Status:** COMPLETED
+
+* **Step 7:** Implement file event handlers.
+  * **Action:** Create handlers for chokidar events and connect them to the state tracking system.
+  * **Structure:**
+    * Implement handlers for 'add', 'change', 'unlink' events
+    * Update file state on each event
+    * Create and dispatch unified update notices
+    * Trigger debounced state persistence on each event
+  * **MCP Tool Suggestion:** `mcp_codebase_search { query: "event handling in Doh" }`
+  * **Status:** COMPLETED
+
+* **Step 8:** Implement subscription matching and notification dispatch.
+  * **Action:** Create a system to match file events with subscriptions and notify subscribers.
+  * **Structure:**
+    * Implement pattern matching for glob subscriptions
+    * Create an efficient notification system
+    * Include relevant metadata in notifications but not file contents
+  * **MCP Tool Suggestion:** `mcp_codebase_search { query: "glob matching or pattern matching in Doh" }`
+  * **Status:** COMPLETED
+
+* **Step 9:** Add API methods for subscribing to events.
+  * **Action:** Create public methods for subscribing to file events.
+  * **Structure:**
+    * Method to subscribe to individual files
+    * Method to subscribe to directories
+    * Method to subscribe to glob patterns
+    * Method to unsubscribe
+  * **MCP Tool Suggestion:** `mcp_codebase_search { query: "public API methods in Doh modules" }`
+  * **Status:** COMPLETED
+
+* **Step 10:** Implement initialization and cleanup.
+  * **Action:** Create methods to start and stop the watcher.
+  * **Structure:**
+    * Method to initialize the watcher and load state
+    * Method to stop the watcher and save state
+    * Handle proper cleanup on process exit
+  * **MCP Tool Suggestion:** `mcp_codebase_search { query: "cleanup patterns in Doh" }`
+  * **Status:** COMPLETED
+
+* **Step 11:** Add Pod configuration for the watcher.
+  * **Action:** Create configuration options in the Pod system.
+  * **Structure:**
+    * Add watcher-specific configuration to Doh.pod
+    * Include options for ignored paths, persistence location, etc.
+  * **MCP Tool Suggestion:** `mcp_codebase_search { query: "Pod configuration examples" }`
+  * **Status:** COMPLETED
+
+* **Step 12:** Document the API and usage with examples.
+  * **Action:** Add comprehensive documentation for the watcher module.
+  * **Structure:**
+    * Document initialization
+    * Document subscription methods
+    * Document event formats
+    * Provide usage examples
+  * **MCP Tool Suggestion:** `mcp_codebase_search { query: "documentation patterns in Doh" }`
+  * **Status:** COMPLETED
+
+---
+
+#### 4. Success Measures (Localized)
+
+* **Measure 1:** File watching works correctly for the entire project.
+  * **Validation:** Events are triggered for file changes throughout the project.
+  * **MCP Validation:** Create test files and verify events are triggered.
+
+* **Measure 2:** File state is accurately tracked and persisted.
+  * **Validation:** Check that the state file contains accurate information about file mtimes and status.
+  * **MCP Validation:** Modify files, restart the application, and verify state is preserved.
+
+* **Measure 3:** Subscription system works for various patterns.
+  * **Validation:** Subscribers receive events for their subscribed patterns only.
+  * **MCP Validation:** Set up test subscriptions for files, directories, and globs and verify event delivery.
+
+* **Measure 4:** Removed file tracking behaves like git.
+  * **Validation:** Removed files are tracked until they reappear.
+  * **MCP Validation:** Delete files, verify they're marked as removed, restore them, and verify they're tracked again.
+
+* **Measure 5:** Performance is acceptable even with large directory structures.
+  * **Validation:** Application remains responsive when watching large projects.
+  * **MCP Validation:** Test with a project containing many files and measure resource usage.
+
+---
+
+#### 5. State Log
+
+* [2023-09-23]: Upguide created.
+* [2023-09-24]: Step 1 completed - chokidar dependency requirement noted for auto-installation. Step 2 in progress.
+* [2023-09-24]: Steps 2-11 completed - Core implementation of FileWatcher module including state tracking, persistence, event handlers, and subscription system. Only documentation (step 12) remains.
+* [2023-09-24]: Step 12 completed - Added comprehensive documentation in doh_js/docs/tools/filewatcher.md with usage examples, API reference, and troubleshooting information. All implementation steps are now complete.
+* [2023-09-25]: Improved state persistence mechanism - Changed from interval-based saving to debounced saves triggered by file events. This simplifies the implementation while ensuring state is persisted promptly after changes with minimal disk I/O. 

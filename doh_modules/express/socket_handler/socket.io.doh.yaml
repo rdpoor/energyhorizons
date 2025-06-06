@@ -1,0 +1,13 @@
+socketio_server:
+  install: npm:socket.io
+  load: nodejs?? import {Server} from 'socket.io'
+
+socketio_client:
+  install: npm:socket.io-client
+  load: 
+    - nodejs?? import {io as ioClient} from 'socket.io-client'
+    # - browser?? io from '/socket.io-client/socket.io.js'
+    - browser?? import {io} from 'socket.io-client'
+
+#TODO: Deprecate this:
+socket-io-client: /socket.io-client/socket.io.js

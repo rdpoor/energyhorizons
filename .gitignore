@@ -1,0 +1,11 @@
+.DS_Store
+.vscode/
+node_modules/
+dist/
+.doh/
+dbs/
+doh_install.log
+package-lock.json
+bun.lockb
+bun.lock
+pod.yaml

@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doh Dependency Browser</title>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #50c878;
+            --bg-color: #1a1a1a;
+            --card-bg: #262626;
+            --text-color: #e0e0e0;
+            --border-color: #444444;
+            --hover-color: #333333;
+            --dependency-bg: #253b5e;
+            --dependency-border: #355685;
+            --dependent-bg: #2a5641;
+            --dependent-border: #3a7a5a;
+            --code-bg: #333333;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            /* min-height: 100vh; */
+            max-width: 100%;
+            overflow: hidden;
+        }
+
+        header {
+            position: sticky;
+            top: 0;
+            background-color: #2c3e50;
+            color: white;
+            padding: 1rem;
+            grid-column: 1 / -1;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        .search-container {
+            display: flex;
+            align-items: center;
+            width: 50%;
+            max-width: 500px;
+        }
+
+        #module-search {
+            width: 100%;
+            padding: 0.5rem;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            font-size: 0.9rem;
+            background-color: #3a3a3a;
+            color: var(--text-color);
+        }
+
+        .sidebar {
+            background-color: var(--card-bg);
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+            padding: 1rem;
+            height: calc(100vh - 70px);
+            position: sticky;
+            /* top: 60px; */
+            max-width: 320px;
+            box-sizing: border-box;
+        }
+
+        .module-list {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            word-break: break-word;
+        }
+
+        .module-item {
+            padding: 0.5rem;
+            cursor: pointer;
+            border-radius: 4px;
+            margin-bottom: 0.25rem;
+            transition: background-color 0.2s;
+        }
+
+        .module-item:hover {
+            background-color: var(--hover-color);
+        }
+
+        .module-item.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .main-content {
+            padding: 1rem 2rem;
+            overflow-y: auto;
+            height: calc(100vh - 70px);
+            box-sizing: border-box;
+        }
+
+        .module-details {
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            word-break: break-word;
+        }
+
+        .module-details h2 {
+            margin-top: 0;
+            color: var(--primary-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+
+        .details-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .details-section h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-color);
+        }
+
+        .dependency-list, .dependents-list {
+            list-style-type: none;
+            padding: 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .dependency-item {
+            background-color: var(--dependency-bg);
+            border: 1px solid var(--dependency-border);
+            border-radius: 4px;
+            padding: 0.25rem 0.75rem;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .dependent-item {
+            background-color: var(--dependent-bg);
+            border: 1px solid var(--dependent-border);
+            border-radius: 4px;
+            padding: 0.25rem 0.75rem;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .dependency-item:hover {
+            background-color: #304c79;
+        }
+
+        .dependent-item:hover {
+            background-color: #376b55;
+        }
+
+        .metadata-grid {
+            display: grid;
+            grid-template-columns: 150px 1fr;
+            gap: 0.5rem;
+        }
+
+        .metadata-label {
+            font-weight: bold;
+        }
+
+        .metadata-value {
+            word-break: break-word;
+        }
+
+        code {
+            background-color: var(--code-bg);
+            border-radius: 3px;
+            font-family: SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+            font-size: 0.9em;
+            padding: 0.2em 0.4em;
+        }
+
+        pre {
+            background-color: var(--code-bg);
+            border-radius: 3px;
+            padding: 1rem;
+            overflow-x: auto;
+            margin: 0;
+        }
+
+        .pill {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .pill-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .pill-secondary {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            font-size: 1.2rem;
+            color: var(--text-color);
+        }
+
+        .visualization {
+            margin-top: 2rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            height: 50vh;
+            position: relative;
+            background-color: var(--card-bg);
+        }
+
+        #graph-container {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .graph-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 10;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background-color 0.2s;
+        }
+
+        .btn:hover {
+            background-color: #3a80d2;
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .tab {
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+
+        .tab.active {
+            border-bottom-color: var(--primary-color);
+            font-weight: 500;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .legend {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(38, 38, 38, 0.8);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 10px;
+            font-size: 0.8rem;
+            z-index: 5;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            display: inline-block;
+        }
+
+        .legend-text {
+            font-size: 0.85rem;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                height: auto;
+                position: static;
+            }
+
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .search-container {
+                width: 100%;
+                margin-top: 1rem;
+            }
+        }
+
+        /* Make scrollbars more attractive and consistent across browsers */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #333333;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background-color: #666666;
+            border-radius: 4px;
+            border: 2px solid #333333;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background-color: #888888;
+        }
+
+        /* Firefox scrollbar styling */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: #666666 #333333;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Doh Dependency Browser</h1>
+        <div class="search-container">
+            <input type="text" id="module-search" placeholder="Search modules...">
+        </div>
+    </header>
+    
+    <div class="container">
+        <aside class="sidebar">
+            <h2>Modules</h2>
+            <ul class="module-list" id="module-list">
+                <li class="loading">Loading modules...</li>
+            </ul>
+        </aside>
+        
+        <main class="main-content">
+            <div id="module-details" class="module-details">
+                <p>Select a module from the sidebar to view its details.</p>
+            </div>
+            
+            <div class="visualization">
+                <div class="graph-controls">
+                    <button id="zoom-in" class="btn">+</button>
+                    <button id="zoom-out" class="btn">-</button>
+                    <button id="reset-view" class="btn">Reset</button>
+                </div>
+                <div class="legend">
+                    <div class="legend-item">
+                        <span class="legend-color" style="background-color: #e41a1c;"></span>
+                        <span class="legend-text">Selected Module</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color" style="background-color: #377eb8;"></span>
+                        <span class="legend-text">Dependencies (modules it needs)</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color" style="background-color: #4daf4a;"></span>
+                        <span class="legend-text">Dependents (modules that need it)</span>
+                    </div>
+                </div>
+                <div id="graph-container"></div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script>
+        // Global state
+        let moduleDepGraph = {};
+        let packageManifest = {};
+        let dependentsMap = {}; // Tracks which modules depend on each module
+        let selectedModule = null;
+        let network = null;
+
+        // Utility function to escape HTML special characters
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', initialize);
+
+        async function initialize() {
+            try {
+                // Load the dependency data
+                await loadDependencyData();
+                
+                // Build the dependents map
+                buildDependentsMap();
+                
+                // Populate the module list
+                populateModuleList();
+                
+                // Set up search functionality
+                setupSearch();
+                
+                // Initialize the graph visualization
+                initializeGraph();
+                
+                // Set up history navigation handler
+                setupHistoryNavigation();
+                
+                // If URL has a module parameter, select that module
+                const urlParams = new URLSearchParams(window.location.search);
+                const moduleParam = urlParams.get('module');
+                
+                if (moduleParam && moduleDepGraph[moduleParam]) {
+                    selectModule(moduleParam, false);
+                } else if (moduleNames.length > 0) {
+                    // If there are modules, select the first one
+                    const moduleItems = document.querySelectorAll('.module-item');
+                    if (moduleItems.length > 0) {
+                        moduleItems[0].click();
+                    }
+                }
+            } catch (error) {
+                console.error('Initialization error:', error);
+                document.getElementById('module-list').innerHTML = 
+                    `<li class="module-item">Error loading dependency data: ${error.message}</li>`;
+            }
+        }
+
+        async function loadDependencyData() {
+            try {
+                // Load the module dependency graph
+                const depGraphResponse = await fetch('/doh_js/manifests/module_dep_graph.json');
+                moduleDepGraph = await depGraphResponse.json();
+                
+                // Load the package manifest
+                const packageManifestResponse = await fetch('/doh_js/manifests/package_manifest.json');
+                packageManifest = await packageManifestResponse.json();
+                
+                console.log('Data loaded successfully');
+            } catch (error) {
+                console.error('Error loading dependency data:', error);
+                throw new Error('Failed to load dependency data. Make sure the manifest files are accessible.');
+            }
+        }
+
+        function buildDependentsMap() {
+            dependentsMap = {};
+            
+            // Initialize all modules with empty arrays
+            Object.keys(moduleDepGraph).forEach(module => {
+                dependentsMap[module] = [];
+            });
+            
+            // Populate the dependents for each module
+            Object.entries(moduleDepGraph).forEach(([module, dependencies]) => {
+                if (Array.isArray(dependencies)) {
+                    dependencies.forEach(dep => {
+                        if (!dependentsMap[dep]) {
+                            dependentsMap[dep] = [];
+                        }
+                        dependentsMap[dep].push(module);
+                    });
+                }
+            });
+        }
+
+        function populateModuleList() {
+            const moduleListElement = document.getElementById('module-list');
+            const moduleNames = Object.keys(moduleDepGraph).sort();
+            
+            if (moduleNames.length === 0) {
+                moduleListElement.innerHTML = '<li class="module-item">No modules found</li>';
+                return;
+            }
+            
+            moduleListElement.innerHTML = moduleNames
+                .map(module => `<li class="module-item" data-module="${escapeHtml(module)}">${escapeHtml(module)}</li>`)
+                .join('');
+                
+            // Add click event listeners
+            document.querySelectorAll('.module-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    const moduleName = this.getAttribute('data-module');
+                    selectModule(moduleName, true);
+                });
+            });
+            
+            // Store moduleNames for use in other functions
+            window.moduleNames = moduleNames;
+        }
+
+        function setupSearch() {
+            const searchInput = document.getElementById('module-search');
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                const moduleItems = document.querySelectorAll('.module-item');
+                
+                moduleItems.forEach(item => {
+                    const moduleName = item.getAttribute('data-module').toLowerCase();
+                    if (moduleName.includes(searchTerm)) {
+                        item.style.display = 'block';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            });
+        }
+
+        function setupHistoryNavigation() {
+            // Handle browser back/forward buttons
+            window.addEventListener('popstate', function(event) {
+                if (event.state && event.state.module) {
+                    // Don't push a new state since we're navigating through history
+                    selectModule(event.state.module, false);
+                }
+            });
+        }
+
+        function selectModule(moduleName, addToHistory = true) {
+            if (!moduleName || !moduleDepGraph[moduleName]) return;
+            
+            selectedModule = moduleName;
+            
+            // Update active state in the module list
+            document.querySelectorAll('.module-item').forEach(item => {
+                item.classList.remove('active');
+                if (item.getAttribute('data-module') === moduleName) {
+                    item.classList.add('active');
+                }
+            });
+            
+            // Display module details
+            displayModuleDetails(moduleName);
+            
+            // Update the graph visualization
+            updateGraph(moduleName);
+            
+            // Add to browser history if requested
+            if (addToHistory) {
+                const newUrl = new URL(window.location.href);
+                newUrl.searchParams.set('module', moduleName);
+                history.pushState({ module: moduleName }, `Module: ${moduleName}`, newUrl.toString());
+            }
+        }
+
+        function displayModuleDetails(moduleName) {
+            const moduleDetailsElement = document.getElementById('module-details');
+            const packageInfo = packageManifest[moduleName] || {};
+            const dependencies = moduleDepGraph[moduleName] || [];
+            const dependents = dependentsMap[moduleName] || [];
+            
+            let content = `
+                <h2>${escapeHtml(moduleName)}</h2>
+                
+                <div class="tabs">
+                    <div class="tab active" data-tab="dependencies">Dependencies</div>
+                    <div class="tab" data-tab="details">Package Details</div>
+                    <div class="tab" data-tab="dependents">Dependents</div>
+                </div>
+                
+                <div class="tab-content active" data-tab-content="dependencies">
+                    <div class="details-section">
+                        <h3>Dependencies (${dependencies.length})</h3>
+                        ${dependencies.length === 0 ? '<p>No dependencies</p>' : ''}
+                        <ul class="dependency-list">
+                            ${dependencies.map(dep => 
+                                `<li class="dependency-item" data-module="${escapeHtml(dep)}">${escapeHtml(dep)}</li>`
+                            ).join('')}
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="tab-content" data-tab-content="details">
+                    <div class="details-section">
+                        <h3>Package Information</h3>
+                        <div class="metadata-grid">
+                            ${packageInfo.file ? 
+                                `<div class="metadata-label">File</div>
+                                <div class="metadata-value">${escapeHtml(packageInfo.file)}</div>` : ''}
+                            
+                            ${packageInfo.path ? 
+                                `<div class="metadata-label">Path</div>
+                                <div class="metadata-value">${escapeHtml(packageInfo.path)}</div>` : ''}
+                            
+                            ${packageInfo.version ? 
+                                `<div class="metadata-label">Version</div>
+                                <div class="metadata-value">${escapeHtml(packageInfo.version)}</div>` : ''}
+                            
+                            ${packageInfo.updated ? 
+                                `<div class="metadata-label">Updated</div>
+                                <div class="metadata-value">${new Date(packageInfo.updated).toLocaleString()}</div>` : ''}
+                            
+                            ${packageInfo.packagefile ? 
+                                `<div class="metadata-label">Package File</div>
+                                <div class="metadata-value">${escapeHtml(packageInfo.packagefile)}</div>` : ''}
+                        </div>
+                    </div>
+                    
+                    ${packageInfo.load && packageInfo.load.length > 0 ? `
+                    <div class="details-section">
+                        <h3>Load Instructions</h3>
+                        <pre><code>${escapeHtml(JSON.stringify(packageInfo.load, null, 2))}</code></pre>
+                    </div>
+                    ` : ''}
+                    
+                    ${packageInfo.params && packageInfo.params.length > 0 ? `
+                    <div class="details-section">
+                        <h3>Parameters</h3>
+                        <ul>
+                            ${packageInfo.params.map(param => `<li>${escapeHtml(param)}</li>`).join('')}
+                        </ul>
+                    </div>
+                    ` : ''}
+                    
+                    ${packageInfo.install ? `
+                    <div class="details-section">
+                        <h3>Installation Requirements</h3>
+                        <pre><code>${escapeHtml(JSON.stringify(packageInfo.install, null, 2))}</code></pre>
+                    </div>
+                    ` : ''}
+                </div>
+                
+                <div class="tab-content" data-tab-content="dependents">
+                    <div class="details-section">
+                        <h3>Dependents (${dependents.length})</h3>
+                        ${dependents.length === 0 ? '<p>No dependents</p>' : ''}
+                        <ul class="dependents-list">
+                            ${dependents.map(dep => 
+                                `<li class="dependent-item" data-module="${escapeHtml(dep)}">${escapeHtml(dep)}</li>`
+                            ).join('')}
+                        </ul>
+                    </div>
+                </div>
+            `;
+            
+            moduleDetailsElement.innerHTML = content;
+            
+            // Set up tab functionality
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const tabName = this.getAttribute('data-tab');
+                    
+                    // Update active tab
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Update active content
+                    document.querySelectorAll('.tab-content').forEach(content => {
+                        content.classList.remove('active');
+                        if (content.getAttribute('data-tab-content') === tabName) {
+                            content.classList.add('active');
+                        }
+                    });
+                });
+            });
+            
+            // Add click event to dependencies
+            document.querySelectorAll('.dependency-item, .dependent-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    const moduleName = this.getAttribute('data-module');
+                    selectModule(moduleName, true);
+                    
+                    // Scroll the module into view in the sidebar
+                    const moduleItem = document.querySelector(`.module-item[data-module="${escapeHtml(moduleName)}"]`);
+                    if (moduleItem) {
+                        moduleItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }
+                });
+            });
+        }
+
+        function initializeGraph() {
+            const graphContainer = document.getElementById('graph-container');
+            
+            // Set up D3.js force-directed graph
+            const width = graphContainer.clientWidth;
+            const height = graphContainer.clientHeight;
+            
+            // Create SVG element
+            const svg = d3.select('#graph-container')
+                .append('svg')
+                .attr('width', width)
+                .attr('height', height)
+                .call(d3.zoom().on('zoom', function(event) {
+                    svg.attr('transform', event.transform);
+                }))
+                .append('g');
+            
+            // Set up zoom controls
+            document.getElementById('zoom-in').addEventListener('click', () => {
+                const zoom = d3.zoom().on('zoom', function(event) {
+                    svg.attr('transform', event.transform);
+                });
+                d3.select('#graph-container svg').transition().call(zoom.scaleBy, 1.3);
+            });
+            
+            document.getElementById('zoom-out').addEventListener('click', () => {
+                const zoom = d3.zoom().on('zoom', function(event) {
+                    svg.attr('transform', event.transform);
+                });
+                d3.select('#graph-container svg').transition().call(zoom.scaleBy, 0.7);
+            });
+            
+            document.getElementById('reset-view').addEventListener('click', () => {
+                const zoom = d3.zoom().on('zoom', function(event) {
+                    svg.attr('transform', event.transform);
+                });
+                d3.select('#graph-container svg').transition().call(zoom.transform, d3.zoomIdentity);
+            });
+        }
+
+        function updateGraph(centralModule) {
+            if (!centralModule) return;
+            
+            // Clear existing graph
+            d3.select('#graph-container svg g').selectAll('*').remove();
+            
+            const svg = d3.select('#graph-container svg g');
+            const width = document.getElementById('graph-container').clientWidth;
+            const height = document.getElementById('graph-container').clientHeight;
+            
+            // Define graph data
+            const nodes = [];
+            const links = [];
+            
+            // Add the central module
+            nodes.push({
+                id: centralModule,
+                name: centralModule,
+                level: 0,
+                group: 1
+            });
+            
+            // Add direct dependencies
+            const dependencies = moduleDepGraph[centralModule] || [];
+            dependencies.forEach((dep, i) => {
+                nodes.push({
+                    id: dep,
+                    name: dep,
+                    level: 1,
+                    group: 2
+                });
+                
+                links.push({
+                    source: centralModule,
+                    target: dep,
+                    value: 1
+                });
+            });
+            
+            // Add direct dependents
+            const dependents = dependentsMap[centralModule] || [];
+            dependents.forEach((dep, i) => {
+                // Check if this node already exists
+                if (!nodes.find(n => n.id === dep)) {
+                    nodes.push({
+                        id: dep,
+                        name: dep,
+                        level: -1,
+                        group: 3
+                    });
+                }
+                
+                links.push({
+                    source: dep,
+                    target: centralModule,
+                    value: 1
+                });
+            });
+            
+            // Create a force simulation
+            const simulation = d3.forceSimulation(nodes)
+                .force('link', d3.forceLink(links).id(d => d.id).distance(100))
+                .force('charge', d3.forceManyBody().strength(-300))
+                .force('center', d3.forceCenter(width / 2, height / 2))
+                .force('x', d3.forceX().strength(0.1))
+                .force('y', d3.forceY().strength(0.1));
+            
+            // Create the links
+            const link = svg.append('g')
+                .attr('class', 'links')
+                .selectAll('line')
+                .data(links)
+                .enter().append('line')
+                .attr('stroke-width', d => Math.sqrt(d.value))
+                .attr('stroke', '#999')
+                .attr('stroke-opacity', 0.6);
+            
+            // Create the nodes
+            const node = svg.append('g')
+                .attr('class', 'nodes')
+                .selectAll('circle')
+                .data(nodes)
+                .enter().append('circle')
+                .attr('r', d => d.id === centralModule ? 10 : 6)
+                .attr('fill', d => {
+                    if (d.id === centralModule) return '#e41a1c';
+                    if (d.level === 1) return '#377eb8';  // dependencies
+                    return '#4daf4a';  // dependents
+                })
+                .call(d3.drag()
+                    .on('start', dragstarted)
+                    .on('drag', dragged)
+                    .on('end', dragended));
+            
+            // Add titles (tooltips)
+            node.append('title')
+                .text(d => escapeHtml(d.name));
+            
+            // Add text labels
+            const text = svg.append('g')
+                .attr('class', 'labels')
+                .selectAll('text')
+                .data(nodes)
+                .enter().append('text')
+                .text(d => d.name)
+                .attr('font-size', d => d.id === centralModule ? '12px' : '10px')
+                .attr('dx', 12)
+                .attr('dy', 4)
+                .attr('fill', '#e0e0e0');
+            
+            // Add click event to nodes
+            node.on('click', function(event, d) {
+                selectModule(d.id, true);
+            });
+            
+            text.on('click', function(event, d) {
+                selectModule(d.id, true);
+            });
+            
+            // Update positions on simulation tick
+            simulation.on('tick', () => {
+                link
+                    .attr('x1', d => d.source.x)
+                    .attr('y1', d => d.source.y)
+                    .attr('x2', d => d.target.x)
+                    .attr('y2', d => d.target.y);
+                
+                node
+                    .attr('cx', d => d.x)
+                    .attr('cy', d => d.y);
+                
+                text
+                    .attr('x', d => d.x)
+                    .attr('y', d => d.y);
+            });
+            
+            // Drag functions
+            function dragstarted(event, d) {
+                if (!event.active) simulation.alphaTarget(0.3).restart();
+                d.fx = d.x;
+                d.fy = d.y;
+            }
+            
+            function dragged(event, d) {
+                d.fx = event.x;
+                d.fy = event.y;
+            }
+            
+            function dragended(event, d) {
+                if (!event.active) simulation.alphaTarget(0);
+                d.fx = null;
+                d.fy = null;
+            }
+        }
+    </script>
+</body>
+</html> 

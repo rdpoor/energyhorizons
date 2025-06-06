@@ -1,0 +1,11 @@
+
+{{importmap}}
+
+<link rel="modulepreload" href="{{deploy.js}}" crossorigin="anonymous" />
+
+<meta http-equiv="X-UA-Compatible" content="IE=edge;" />
+<meta name="x-tracking-id" content="{{trackingId}}">
+<meta name="x-parent-tracking-id" content="{{parentTrackingId}}">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+{{doh_curtain_style_element}}

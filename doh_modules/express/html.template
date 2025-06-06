@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+{{doh_head}}
+<title>{{title}}</title>
+{{head}}
+</head>
+
+<body>
+{{doh_body}}
+{{body}}
+</body>
+</html>

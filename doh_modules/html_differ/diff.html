@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML Differ Test Template</title>
+    
+    <!-- 
+    =================================================================
+    HEADER CHANGES SECTION - Test changes to <head> elements
+    =================================================================
+    -->
+    
+    <!-- Test meta tag changes - Modify the content attribute -->
+    <meta name="description" content="This is a test template for the HTML differ">
+    
+    <!-- Test link tag changes - Change the href attribute -->
+    <link rel="stylesheet" href="./styles/test-styles.css">
+    
+    <!-- Test style changes - Modify the CSS rules -->
+    <style>
+        .test-section {
+          border: 2px solid #1ac475;
+        }
+        .highlight {
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        
+        .button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+    </style>
+    
+    <!-- Test script changes - Modify the JavaScript content -->
+    <script>
+        function testFunction() {
+            console.log('This is a test function');
+            return 'Original function result';
+        }
+    </script>
+</head>
+<body>
+    <h1>HTML Differ Test Template</h1>
+    <p>This template contains various HTML structures to test different change scenarios</p>
+    
+    <!-- 
+    =================================================================
+    TEXT CHANGES SECTION - Test changes to text content
+    =================================================================
+    -->
+    <div class="test-section" id="text-changes">
+        <h2>Test Text Changes</h2>
+        
+        <!-- Simple text change -->
+        <p class="simple-text">This is a simple text that can be modified.</p>
+        
+        <!-- Text with formatting -->
+        <p class="formatted-text">This text contains <strong>bold</strong>, <em>italic</em>, and <code>code</code> formatting.</p>
+        
+        <!-- Multi-line text -->
+        <div class="multi-line">
+            <p>This is the first line of a multi-line text.</p>
+            <p>This is the second line that can be changed.</p>
+            <p>This is the third line with more content.</p>
+        </div>
+        
+        <!-- Text with special characters -->
+        <p class="special-chars">Special characters: &lt;&gt;&amp;&quot;&#39; and emojis: 🔥🚀✨</p>
+    </div>
+    
+    <!-- 
+    =================================================================
+    ATTRIBUTE CHANGES SECTION - Test changes to attributes
+    =================================================================
+    -->
+    <div class="test-section" id="attribute-changes">
+        <h2>Test Attribute Changes</h2>
+        
+        <!-- Adding attributes -->
+        <div class="add-attribute">This element has no data attributes initially.</div>
+        
+        <!-- Removing attributes -->
+        <div class="remove-attribute" data-test="remove-me" title="This title can be removed">This element has attributes that can be removed.</div>
+        
+        <!-- Modifying attribute values -->
+        <input type="text" class="modify-attribute" value="Original value" placeholder="Original placeholder">
+        
+        <!-- Class attribute changes -->
+        <div class="class-change highlight">This element's classes can be changed.</div>
+        
+        <!-- ID attribute changes -->
+        <div class="id-change" id="original-id">This element's ID can be changed.</div>
+        
+        <!-- Boolean attribute changes -->
+        <button class="bool-attribute" disabled>This button is disabled</button>
+    </div>
+    
+    <!-- 
+    =================================================================
+    ELEMENT ADDITION SECTION - Test adding new elements
+    =================================================================
+    -->
+    <div class="test-section" id="element-addition">
+        <h2>Test Element Addition</h2>
+        
+        <!-- Add elements before -->
+        <div class="add-before">
+            <p>New elements can be added before this paragraph.</p>
+        </div>
+        
+        <!-- Add elements after -->
+        <div class="add-after">
+            <p>New elements can be added after this paragraph.</p>
+        </div>
+        
+        <!-- Add elements inside -->
+        <div class="add-inside">
+            <!-- New elements can be added here -->
+        </div>
+        
+        <!-- Add elements with attributes -->
+        <div class="add-with-attributes">
+            <!-- Add an element with multiple attributes here -->
+        </div>
+    </div>
+    
+    <!-- 
+    =================================================================
+    ELEMENT REMOVAL SECTION - Test removing elements
+    =================================================================
+    -->
+    <div class="test-section" id="element-removal">
+        <h2>Test Element Removal</h2>
+        
+        <!-- Remove simple element -->
+        <div class="remove-me">
+            <p>This paragraph can be removed.</p>
+        </div>
+        
+        <!-- Remove element with children -->
+        <div class="remove-with-children">
+            <h3>Removable Section</h3>
+            <p>This entire section can be removed.</p>
+            <ul>
+                <li>Item 1</li>
+                <li>Item 2</li>
+                <li>Item 3</li>
+            </ul>
+        </div>
+        
+        <!-- Remove specific child -->
+        <div class="remove-specific-child">
+            <p>This paragraph should stay.</p>
+            <p class="specific-remove">This specific paragraph can be removed.</p>
+            <p>This paragraph should also stay.</p>
+        </div>
+    </div>
+    
+    <!-- 
+    =================================================================
+    STRUCTURE CHANGES SECTION - Test changing element structure
+    =================================================================
+    -->
+    <div class="test-section" id="structure-changes">
+        <h2>Test Structure Changes</h2>
+        
+        <!-- Change element order -->
+        <div class="change-order">
+            <p id="order-1">First paragraph</p>
+            <p id="order-2">Second paragraph</p>
+            <p id="order-3">Third paragraph</p>
+        </div>
+        
+        <!-- Change element nesting -->
+        <div class="change-nesting">
+            <div class="parent">
+                <p>This is a parent element.</p>
+                <div class="child">
+                    <p>This is a child element that can be moved.</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Change element hierarchy -->
+        <div class="change-hierarchy">
+            <ul>
+                <li>Top level item 1</li>
+                <li>Top level item 2
+                    <ul>
+                        <li>Nested item 1</li>
+                        <li>Nested item 2</li>
+                    </ul>
+                </li>
+                <li>Top level item 3</li>
+            </ul>
+        </div>
+    </div>
+    
+    <!-- 
+    =================================================================
+    TAG CHANGES SECTION - Test changing element tags
+    =================================================================
+    -->
+    <div class="test-section" id="tag-changes">
+        <h2>Test Tag Changes</h2>
+        
+        <!-- Change tag type -->
+        <div class="change-tag">
+            <p class="tag-to-change">This paragraph tag can be changed to a different tag.</p>
+            <span class="another-tag-change">This span can be changed to another element type.</span>
+        </div>
+        
+        <!-- Change input types -->
+        <div class="change-input-type">
+            <input type="text" class="input-type-change" value="Change my input type">
+        </div>
+    </div>
+    
+    <!-- 
+    =================================================================
+    COMPLEX NESTED CHANGES - Test changes in deeply nested structures
+    =================================================================
+    -->
+    <div class="test-section" id="nested-changes">
+        <h2>Test Nested Changes</h2>
+        
+        <!-- Deeply nested structure -->
+        <div class="deep-nesting">
+            <div class="level-1">
+                <div class="level-2">
+                    <div class="level-3">
+                        <div class="level-4">
+                            <p>This is a deeply nested paragraph that can be changed.</p>
+                            <span>This span is also deeply nested.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Complex form structure -->
+        <form class="complex-form">
+            <fieldset>
+                <legend>Personal Information</legend>
+                <div class="form-group">
+                    <label for="name">Name:</label>
+                    <input type="text" id="name" name="name">
+                </div>
+                <div class="form-group">
+                    <label for="email">Email:</label>
+                    <input type="email" id="email" name="email">
+                </div>
+                <div class="nested-section">
+                    <h4>Address</h4>
+                    <div class="form-group">
+                        <label for="street">Street:</label>
+                        <input type="text" id="street" name="street">
+                    </div>
+                    <div class="form-group">
+                        <label for="city">City:</label>
+                        <input type="text" id="city" name="city">
+                    </div>
+                </div>
+            </fieldset>
+        </form>
+    </div>
+    
+    <!-- 
+    =================================================================
+    SPECIAL ELEMENTS SECTION - Test changes to special elements
+    =================================================================
+    -->
+    <div class="test-section" id="special-elements">
+        <h2>Test Special Elements</h2>
+        
+        <!-- Table changes -->
+        <table class="test-table" border="1">
+            <thead>
+                <tr>
+                    <th>Header 1</th>
+                    <th>Header 2</th>
+                    <th>Header 3</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Row 1, Cell 1</td>
+                    <td>Row 1, Cell 2</td>
+                    <td>Row 1, Cell 3</td>
+                </tr>
+                <tr>
+                    <td>Row 2, Cell 1</td>
+                    <td>Row 2, Cell 2</td>
+                    <td>Row 2, Cell 3</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <!-- List changes -->
+        <div class="list-changes">
+            <ul class="unordered-list">
+                <li>Unordered item 1</li>
+                <li>Unordered item 2</li>
+                <li>Unordered item 3</li>
+            </ul>
+            
+            <ol class="ordered-list">
+                <li>Ordered item 1</li>
+                <li>Ordered item 2</li>
+                <li>Ordered item 3</li>
+            </ol>
+        </div>
+        
+        <!-- Media elements -->
+        <div class="media-elements">
+            <img src="placeholder.jpg" alt="Placeholder image" width="200">
+            <audio controls>
+                <source src="audio.mp3" type="audio/mpeg">
+                Your browser does not support the audio element.
+            </audio>
+            <video width="320" height="240" controls>
+                <source src="video.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        </div>
+    </div>
+    
+    <!-- 
+    =================================================================
+    DYNAMIC CONTENT SIMULATION - Test handling of dynamic content
+    =================================================================
+    -->
+    <div class="test-section" id="dynamic-content">
+        <h2>Test Dynamic Content Handling</h2>
+        
+        <!-- Content that would be dynamically generated -->
+        <div class="doh dynamic-area">
+            <p>This area simulates dynamically generated content.</p>
+            <div class="dynamic-result">
+                <span>Dynamic result: <strong id="dynamic-value">42</strong></span>
+            </div>
+        </div>
+        
+        <!-- Manual modification area next to dynamic content -->
+        <div class="static-adjacent">
+            <p>This static area is adjacent to dynamic content. Modifications here should not affect dynamic content.</p>
+        </div>
+    </div>
+    
+    <script>
+        // This script could be used to test dynamic content changes
+        // Uncomment to use:
+        /*
+        document.addEventListener('DOMContentLoaded', function() {
+            setInterval(function() {
+                document.getElementById('dynamic-value').textContent = Math.floor(Math.random() * 100);
+            }, 2000);
+        });
+        */
+    </script>
+</body>
+</html> 
