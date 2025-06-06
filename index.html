@@ -1,98 +1,46 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    {{doh_head}}
-    <title>Doh Webserver</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Energy Horizons | Energy Market & Technology Consulting</title>
+    <link rel="icon" type="image/png" href="gfx/energyhorizons.png">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="app-container">
-        {{file:/nav.html}}
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="logo">
+                <img src="gfx/energyhorizons.png" alt="Energy Horizons Logo" class="logo-img">
+                <span class="logo-text">Energy Horizons</span>
+            </a>
+            <button class="mobile-menu-btn" aria-label="Toggle menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <ul class="nav-links">
+                <li><a href="#services">Services</a></li>
+                <li><a href="#work">Work</a></li>
+                <li><a href="#contact">Contact</a></li>
+            </ul>
+        </div>
+    </nav>
 
-        <main>
-            <section class="hero">
-                <div class="container">
-                    <h1 class="gradient-text">
-                        <div>Your Doh</div>
-                        <div>Webserver is Running</div>
-                    </h1>
-                    <p class="subtitle">Congratulations on setting up your Doh webserver! Edit this page to start building your application.</p>
-                    
-                    <div class="code-card">
-                        <div class="code-header">
-                            <span>Create your first module:</span>
-                            <button class="copy-btn" onclick="copyToClipboard('doh init wizard')">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M8 5H6a2 2 0 00-2 2v11a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path>
-                                </svg>
-                            </button>
-                        </div>
-                        <pre><code class="language-bash">doh init wizard</code></pre>
-                        <div class="code-description">
-                            <p>Start building with the module wizard to create your first interactive component!</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section class="features">
-                <div class="container">
-                    <h2>Quick Tips</h2>
-                    
-                    <div class="card-grid">
-                        <div class="feature-card hot-reloading">
-                            <div class="icon">
-                                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                                </svg>
-                            </div>
-                            <h3>Hot Reloading</h3>
-                            <p>Edit html/cssfiles and see changes instantly. No need to refresh your browser!</p>
-                        </div>
-                        
-                        <div class="feature-card pattern-system">
-                            <div class="icon">
-                                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343"></path>
-                                </svg>
-                            </div>
-                            <h3>Create Components</h3>
-                            <p>Build your application using Doh's powerful Pattern system. Check the <a href="https://deploydoh.com/docs" class="link">docs</a> for examples.</p>
-                        </div>
-
-                        <div class="feature-card docs">
-                            <div class="icon">
-                                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-                            </div>
-                            <h3>Get Started Fast</h3>
-                            <p>Review the documentation at <a href="https://deploydoh.com/docs" class="link">docs</a> to explore all features.</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
-        </main>
-
-        <footer>
-            <div class="container">
-                <p>Made with Doh.js - <a href="https://deploydoh.com" class="link">deploydoh.com</a></p>
+    <main>
+        <section class="hero">
+            <div class="hero-content">
+                <h1>Navigate the energy transition with confidence</h1>
             </div>
-        </footer>
-    </div>
+        </section>
+    </main>
 
     <script>
-        function copyToClipboard(text) {
-            navigator.clipboard.writeText(text).then(() => {
-                const copyBtn = document.querySelector('.copy-btn');
-                const originalHTML = copyBtn.innerHTML;
-                copyBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>';
-                setTimeout(() => {
-                    copyBtn.innerHTML = originalHTML;
-                }, 2000);
-            });
-        }
+        // Mobile menu toggle
+        document.querySelector('.mobile-menu-btn').addEventListener('click', function() {
+            document.querySelector('.nav-links').classList.toggle('active');
+            this.classList.toggle('active');
+        });
     </script>
 </body>
 </html>
