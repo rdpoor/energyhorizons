@@ -1,4 +1,5 @@
 pod_version: 0.0.1
 host_load:
   - hmr
+  - express_router
 name: energyhorizons.com:prod
