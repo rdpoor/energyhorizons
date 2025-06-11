@@ -1,5 +1,5 @@
 {
-  "version": "0.2.51a",
+  "version": "0.2.57a",
   "removals": [
     "/docs/building/ajax.md",
     "/docs/building/database.md",
@@ -11,6 +11,9 @@
     "/docs/building/users.md",
     "^/dohdashboard.js",
     "^/docs/core/hmr.md",
-    "^/docs/tools/database.md"
+    "^/docs/tools/database.md",
+    "^/docs/tools/filewatcher.md",
+    "^/types/doh.d.ts",
+    "^/types/dohpath.d.ts"
   ]
 }

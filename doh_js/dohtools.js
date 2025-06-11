@@ -4,14 +4,11 @@ import tarFs from 'tar-fs';
 import zlib from 'zlib';
 import path from 'path';
 import crypto from 'crypto';
-import readline from 'readline';
 import { Worker } from 'worker_threads';
 import YAML from 'yaml';
 import { getVersionAsNumber, getVersionFromNumber, getVersion, getVersionTag, tagVersion } from './dohver.js';
 import { execSync } from 'child_process';
-
-const colorize = Doh.colorize;
-const toForwardSlash = (str) => str.replace(/\\/g, '/');
+import * as p from '@clack/prompts';
 
 function onlypack(pod = {}) {
   return Object.assign({}, {
@@ -401,12 +398,12 @@ class DohTools {
     }
 
     const targetDescription = packageNames.length > 0
-        ? `the following specified package(s): ${packagesToBake.join(', ')}`
-        : `all eligible exposed packages`;
+        ? `the following package(s): \n\n${packagesToBake.join(', ')}\n`
+        : `all eligible exposed packages?`;
 
-    const confirmMessage = `Bake ${targetDescription}?`;
+    const confirmMessage = `Bake ${targetDescription}`;
 
-    if (!await this.confirmWarning(confirmMessage)) return;
+    if (!await this.confirmAction(confirmMessage)) return;
     await Doh.run_packager(onlypack(args_pod));
     Doh.performance.endlog('Validate Dependencies');
   }
@@ -483,6 +480,7 @@ class DohTools {
       Doh.logger.restoreConsole();
     }
     const podPath = DohPath('/pod.yaml');
+    const bootPodPath = DohPath('/boot.pod.yaml');
     const compiledPodPath = DohPath('/.doh/compiled.pod.yaml');
     let podContent;
     try {
@@ -490,6 +488,16 @@ class DohTools {
     } catch (error) {
       if (error.code === 'ENOENT') {
         podContent = '';
+      } else {
+        throw error;
+      }
+    }
+    let bootPodContent;
+    try {
+      bootPodContent = await fsp.readFile(bootPodPath, 'utf8');
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        bootPodContent = '';
       } else {
         throw error;
       }
@@ -506,6 +514,7 @@ class DohTools {
     }
 
     let podYaml = YAML.parse(podContent) || {};
+    let bootPodYaml = YAML.parse(bootPodContent) || {};
     let compiledPodYaml = YAML.parse(compiledPodContent) || {};
 
     // Special case for showing the whole pod
@@ -532,7 +541,7 @@ class DohTools {
           const inheritChain = [...Object.keys(compiledPodYaml.inherited || {})];
           inheritChain.forEach(inheritPath => {
             if (compiledPodYaml.inherited[inheritPath][key] !== undefined) {
-              console.log(`      <- [ ${inheritPath} ]`);
+              console.log(`      ^--[ ${inheritPath} ]`);
             }
           });
         }
@@ -542,71 +551,154 @@ class DohTools {
     }
 
     const settingValue = Doh.parse_reference(podYaml, setting);
+    const bootPodValue = Doh.parse_reference(bootPodYaml, setting);
     const compiledValue = Doh.parse_reference(compiledPodYaml, setting);
 
-    console.log(`\nCurrent [ /pod.yaml ] ${setting}:\n`);
-    if (Array.isArray(settingValue)) {
-      if (settingValue.length === 0) {
-        console.log('  (none)');
-      } else {
-        settingValue.forEach(item => console.log(`  ${item}`));
-      }
-    } else if (typeof settingValue === 'object' && settingValue !== null) {
-      console.log(YAML.stringify(settingValue).split('\n').map(line => '  ' + line).join('\n'));
-    } else {
-      console.log(`  ${settingValue}`);
-    }
 
     if (compiledPodContent) {
-      console.log(`\nCompiled ${setting}:\n`);
-      if (Array.isArray(compiledValue)) {
+      console.log(`Compiled \`${setting}\` (${SeeIf.TypeOf(compiledValue)}):\n`);
+      if (IsArray(compiledValue)) {
         if (compiledValue.length === 0) {
           console.log('  (none)');
         } else {
           compiledValue.forEach(item => {
             let itemLine = `  ${item}`;
             const inheritChain = [...Object.keys(compiledPodYaml.inherited || {})].reverse();
+            const inheritSources = [];
 
             inheritChain.forEach(inheritPath => {
               const inheritedValue = Doh.parse_reference(compiledPodYaml.inherited[inheritPath], setting);
               if (Array.isArray(inheritedValue) && inheritedValue.includes(item)) {
-                itemLine += `    <- [ ${inheritPath} ]`;
+                inheritSources.push(inheritPath);
               }
             });
+
+            if (inheritSources.length > 0) {
+              const padding = Math.max(0, 40 - itemLine.length);
+              itemLine += `${' '.repeat(padding)} <--[ ${inheritSources.join(', ')} ]`;
+            }
             console.log(itemLine);
           });
         }
-      } else if (typeof compiledValue === 'object' && compiledValue !== null) {
-        console.log(YAML.stringify(compiledValue).split('\n').map(line => '  ' + line).join('\n'));
-        // Show inheritance chain for object keys
-        const inheritChain = [...Object.keys(compiledPodYaml.inherited || {})].reverse();
-        inheritChain.forEach(inheritPath => {
-          const inheritedValue = Doh.parse_reference(compiledPodYaml.inherited[inheritPath], setting);
-          if (inheritedValue !== undefined) {
-            if (IsNull(inheritedValue)) return;
-            const sharedKeys = Object.keys(inheritedValue).filter(key =>
-              JSON.stringify(inheritedValue[key]) === JSON.stringify(compiledValue[key])
-            );
-            if (sharedKeys.length > 0) {
-              console.log(`    ${sharedKeys.join(', ')} <- [ ${inheritPath} ]`);
+      } else if (IsObject(compiledValue)) {
+        // Helper function to flatten object to key paths
+        const flattenObject = (obj, prefix = '') => {
+          const result = {};
+          for (const [key, value] of Object.entries(obj)) {
+            const fullKey = prefix ? `${prefix}.${key}` : key;
+            result[fullKey] = value;
+            if (IsObject(value)) {
+              Object.assign(result, flattenObject(value, fullKey));
             }
           }
-        });
+          return result;
+        };
+
+        // Get flattened representation of the compiled object
+        const flattenedObject = flattenObject(compiledValue);
+        const inheritChain = [...Object.keys(compiledPodYaml.inherited || {})].reverse();
+        
+        // Build inheritance map for each key path
+        const keyInheritance = {};
+        for (const keyPath of Object.keys(flattenedObject)) {
+          keyInheritance[keyPath] = [];
+          
+          inheritChain.forEach(inheritPath => {
+            const fullKeyPath = setting ? `${setting}.${keyPath}` : keyPath;
+            const inheritedValue = Doh.parse_reference(compiledPodYaml.inherited[inheritPath], fullKeyPath);
+            if (HasValue(inheritedValue)) {
+              keyInheritance[keyPath].push(inheritPath);
+            }
+          });
+        }
+
+        // Display the YAML with inheritance annotations
+        const yamlLines = YAML.stringify(compiledValue).split('\n');
+        const outputLines = [];
+        
+                 for (let i = 0; i < yamlLines.length; i++) {
+           const line = yamlLines[i];
+           let fullLine = `  ${line}`;
+           
+           // Try to match this line to a key in our object
+           const match = line.match(/^(\s*)([^:]+):/);
+           if (match) {
+             const indentLevel = Math.floor(match[1].length / 2);
+             const key = match[2].trim();
+             
+             // Build the full key path based on indentation and previous keys
+             let keyPath = key;
+             if (indentLevel > 0) {
+               // Find the parent key by looking at previous lines with less indentation
+               for (let j = i - 1; j >= 0; j--) {
+                 const prevMatch = yamlLines[j].match(/^(\s*)([^:]+):/);
+                 if (prevMatch) {
+                   const prevIndentLevel = Math.floor(prevMatch[1].length / 2);
+                   if (prevIndentLevel === indentLevel - 1) {
+                     keyPath = `${prevMatch[2].trim()}.${key}`;
+                     break;
+                   }
+                 }
+               }
+             }
+             
+             // Check if we have inheritance info for this key
+             if (keyInheritance[keyPath] && keyInheritance[keyPath].length > 0) {
+               const padding = Math.max(1, 40 - fullLine.length);
+               fullLine += `${' '.repeat(padding)} <--[ ${keyInheritance[keyPath].join(', ')} ]`;
+             }
+           }
+           
+           outputLines.push(fullLine);
+         }
+        
+        console.log(outputLines.join('\n'));
       } else {
-        console.log(`  ${compiledValue}`);
+        console.log(`  ${compiledValue}\n`);
         // Show inheritance chain for literal values
         const inheritChain = [...Object.keys(compiledPodYaml.inherited || {})].reverse();
         inheritChain.forEach(inheritPath => {
           const inheritedValue = Doh.parse_reference(compiledPodYaml.inherited[inheritPath], setting);
-          if (inheritedValue === compiledValue) {
-            console.log(`    <- [ ${inheritPath} ]`);
+          if (HasValue(inheritedValue)) {
+            const valueStr = `^--[ ${inheritedValue} ]`;
+            const sourceStr = ` <--[ ${inheritPath} ]`;
+            const padding = Math.max(0, 40 - valueStr.length);
+            console.log(`  ${valueStr}${' '.repeat(padding)}${sourceStr}`);
           }
         });
       }
     }
+    else {
+      console.log(`Current [ /pod.yaml ] \`${setting}\`:\n`);
+      if (IsArray(settingValue)) {
+        if (settingValue.length === 0) {
+          console.log('  (none)');
+        } else {
+          settingValue.forEach(item => console.log(`  ${item}`));
+        }
+      } else if (IsObject(settingValue)) {
+        console.log(YAML.stringify(settingValue).split('\n').map(line => '  ' + line).join('\n'));
+      } else {
+        console.log(`  ${settingValue}\n`);
+      }
+      console.log(' ');
+      console.log(`Current [ /boot.pod.yaml ] \`${setting}\`:\n`);
+      if (IsArray(bootPodValue)) {
+        if (bootPodValue.length === 0) {
+          console.log('  (none)');
+        } else {
+          bootPodValue.forEach(item => console.log(`  ${item}`));
+        }
+      } else if (IsObject(bootPodValue)) {
+        console.log(YAML.stringify(bootPodValue).split('\n').map(line => '  ' + line).join('\n'));
+      } else {
+        console.log(`  ${bootPodValue}\n`);
+      }
+    }
+
     console.log(' ');
 
-    return { podYaml, settingValue, compiledPodYaml, compiledValue };
+    return { podYaml, bootPodYaml, settingValue, compiledPodYaml, compiledValue };
   }
   async updatePodInherits(yamlPaths) {
     const podPath = DohPath('/pod.yaml');
@@ -1223,6 +1315,9 @@ class DohTools {
     const manifest = {};
     const toc = [];
     const skipToc = process.argv.includes('--skip-toc');
+    
+    // Track included files and their sizes
+    const fileMap = new Map();
 
     try {
       // skip .git, .doh, node_modules, dist
@@ -1236,7 +1331,7 @@ class DohTools {
 
       // remove any entries that contian doh_js in any way
       skipFiles = skipFiles.filter(file => file !== 'doh_js');
-      console.log(skipFiles);
+      // console.log(skipFiles);
 
       await this.walkDirectory(docsDir, async (filePath) => {
 
@@ -1247,6 +1342,10 @@ class DohTools {
           const fileContent = await fsp.readFile(filePath, 'utf8');
           const lines = fileContent.split('\n');
           const relativeFilePath = Doh.toForwardSlash(path.relative(DohPath('/'), filePath));
+
+          // Get file stats and record in fileMap
+          const stats = await fsp.stat(filePath);
+          fileMap.set(relativeFilePath, stats.size);
 
           // Generate TOC entries only if not skipping
           if (!skipToc) {
@@ -1325,6 +1424,18 @@ class DohTools {
         console.error('Error during documentation compilation:', error.message);
       }
     }
+    
+    // Log the included files and their sizes
+    const totalSize = Array.from(fileMap.values()).reduce((sum, size) => sum + size, 0);
+    const totalSizeKB = (totalSize / 1024).toFixed(2);
+    const mappedObj = Object.fromEntries(fileMap);
+    console.log(' ');
+    console.log('Included files and their sizes:');
+    console.log('================================');
+    console.log(mappedObj);
+    console.log(`Total files included: ${fileMap.size}`);
+    console.log(`Total size: ${totalSizeKB} KB`);
+
     // log the manifest list to the console
     // console.log(Object.keys(manifest));
   }
@@ -1428,12 +1539,32 @@ class DohTools {
 
     try {
 
-      const loadablesManifest = JSON.parse(JSON.stringify(Doh.Packages));
+      // make a copy of the packages manifest
+      let loadablesManifest = JSON.parse(JSON.stringify(Doh.Packages));
+
+      // remove the loadables that the pod is configured to exclude
       if (Doh.pod.export_exclude_loadables) {
         // remove the loadables from the manifest so they are not expanded below
         for (const loadable of Doh.pod.export_exclude_loadables) {
           delete loadablesManifest[loadable];
         }
+      }
+
+      // remove the loadables that are expected to be external to the pod
+      if (Doh.pod.expected_external_doh_modules) {
+        for (const module of Doh.pod.expected_external_doh_modules) {
+          delete loadablesManifest[module];
+        }
+      }
+
+      // if the pod is configured to export explicit doh modules, 
+      // then only expand those modules and remove the rest
+      let explicitDohModules = {};
+      if (Doh.pod.export_explicit_doh_modules) {
+        for (const module of Doh.pod.export_explicit_doh_modules) {
+          explicitDohModules[module] = loadablesManifest[module];
+        }
+        loadablesManifest = explicitDohModules;
       }
 
       const loadablesObjs = {};
@@ -1515,14 +1646,18 @@ class DohTools {
       await writeToStream('  </head>\n  <body style="background-color: #222222; color: #ffffff;">\n');
 
       // Load and process required manifests
-      const [browserPod, packageManifest, corePatternsManifest, patternsManifest, assetsManifest, deploy] = await Promise.all([
+      const [browserPod, packageManifest, corePatternsManifest, patternsManifest, assetsManifest] = await Promise.all([
         podfile !== '/pod.yaml' ? JSON.stringify((await Doh.build_pod(podfile, Doh.pod)).browser_pod) : fsp.readFile(DohPath('/doh_js/manifests/browser_pod.json'), 'utf8'),
         fsp.readFile(DohPath('/doh_js/manifests/package_manifest.json'), 'utf8'),
         fsp.readFile(DohPath('/doh_js/manifests/core_patterns_manifest.json'), 'utf8'),
         fsp.readFile(DohPath('/doh_js/manifests/patterns_manifest.json'), 'utf8'),
         fsp.readFile(DohPath('/doh_js/manifests/assets_manifest.json'), 'utf8'),
-        fsp.readFile(DohPath('/doh_js/deploy.js'), 'utf8')
       ]);
+
+      let deploy;
+      if (!Doh.pod.export_explicit_doh_modules) {
+        deploy = await fsp.readFile(DohPath('/doh_js/deploy.js'), 'utf8');
+      }
 
       // Process loadable modules
       const loadableModulesMap = loadables
@@ -1550,6 +1685,24 @@ class DohTools {
         }
       }
 
+      if (Doh.pod.export_explicit_doh_modules) {
+        await writeToStream('    <script>\n');
+        await writeToStream(`
+        (async()=>{
+          const old = document.querySelector('script[type=importmap]'),
+                m   = JSON.parse(old.textContent);
+          m.imports = m.imports||{};
+          m.imports['/doh_js/deploy.js'] =
+            'data:application/javascript;charset=utf-8,' +
+            encodeURIComponent(await (await fetch('./doh_js/deploy.js')).text());
+          const s = document.createElement('script');
+          s.type = 'importmap';
+          s.textContent = JSON.stringify(m);
+          old.replaceWith(s);
+        })();\n`);
+        await writeToStream('    </script>\n');
+      }
+
       // Write main script content
       await writeToStream('    <script type="module">\n');
       await writeToStream('      globalThis.DohOptions = globalThis.DohOptions || {};\n');
@@ -1567,13 +1720,27 @@ class DohTools {
         await writeToStream(`      DohOptions.VFS['${path}'] = "${content}";\n`);
       }
 
-      await writeToStream(`      ${deploy}\n\n`);
+      if (deploy) {
+        await writeToStream(`      ${deploy}\n\n`);
+      } else {
+        await writeToStream(`      await import('./doh_js/deploy.js');\n`);
+      }
 
       for (const loadable of loadableModulesList) {
         // read the file and write it to the stream
         const content = await fsp.readFile(DohPath(loadable), 'utf8');
         await writeToStream(`      ${content.replace(/<\/script>/g, '<\\/script>')};\n`);
       }
+
+      await writeToStream('      await Doh.load("html");\n');
+
+      if (Doh.pod.expected_external_doh_modules) {
+        for (const module of Doh.pod.expected_external_doh_modules) {
+          if (!Doh.Packages[module].file) continue;
+          await writeToStream(`      await import('.${Doh.Packages[module].file}');\n`);
+        }
+      }
+
 
       await writeToStream(`      await Doh.load(${JSON.stringify(Doh.pod.export_load)});\n`);
       await writeToStream('    </script>\n');
@@ -1667,30 +1834,64 @@ class DohTools {
 
   //MARK: Confirmation
   async confirmWarning(action) {
-    console.log(colorize(`WARNING:`, 'red'), colorize(`This will ${action}. Are you sure? (y/N)`, 'yellow'));
-    const answer = await this.askQuestion('> ');
-    return answer.toLowerCase() === 'y';
+    // Check for --confirm-all flag
+    if (process.argv.includes('--confirm-all')) {
+      return true;
+    }
+
+    // Show a nice intro message
+    p.intro('!!! WARNING !!!');
+    
+    const confirmed = await p.confirm({
+      message: `This operation will ${action}.\n\nDo you want to proceed?`,
+      initialValue: true
+    });
+
+    if (p.isCancel(confirmed)) {
+      p.cancel('Operation cancelled.');
+      process.exit(0);
+    }
+
+    return confirmed;
   }
+
   async confirmAction(action) {
-    console.log(colorize(`${action} (y/N)`, 'yellow'));
-    const answer = await this.askQuestion('> ');
-    return answer.toLowerCase() === 'y';
+    // Check for --confirm-all flag
+    if (process.argv.includes('--confirm-all')) {
+      return true;
+    }
+
+    p.intro(action);
+
+    const confirmed = await p.confirm({
+      message: 'Are you sure?',
+      initialValue: true
+    });
+
+    if (p.isCancel(confirmed)) {
+      p.cancel('Operation cancelled.');
+      process.exit(0);
+    }
+
+    return confirmed;
   }
+
   askQuestion(query) {
     // Check for --confirm-all flag
     if (process.argv.includes('--confirm-all')) {
       return Promise.resolve('y');
     }
 
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout,
+    // For backward compatibility, keep this method but use clack's text input
+    return p.text({
+      message: query.replace('> ', '').trim() || 'Please enter your response:'
+    }).then(answer => {
+      if (p.isCancel(answer)) {
+        p.cancel('Operation cancelled.');
+        process.exit(0);
+      }
+      return answer;
     });
-
-    return new Promise(resolve => rl.question(query, ans => {
-      rl.close();
-      resolve(ans);
-    }));
   }
 
 
@@ -1823,9 +2024,20 @@ Doh.CLI('doh_js', {
 
 
 // MARK: Command handler
-async function runCoreCommand() {
+async function runCoreCommand(passed_args, ...addl_args) {
   const tools = new DohTools();
-  const [, , command, ...args] = process.argv;
+
+  if (!passed_args) {
+    passed_args = process.argv;
+  } else if (IsString(passed_args)) {
+    // if we passed args, then we need to imitate the process.argv
+    passed_args = ['node', 'doh', ...(passed_args.split(' ')), ...addl_args];
+  } else if (IsArray(passed_args)) {
+    // if we passed args, then we need to imitate the process.argv
+    passed_args = ['node', 'doh', ...passed_args, ...addl_args];
+  }
+
+  const [, , command, ...args] = passed_args;
 
   try {
     switch (command) {
@@ -1886,6 +2098,8 @@ async function runCoreCommand() {
     throw error;
   }
 };
+
+Doh.Globals.DohTools = DohTools;
 
 export default DohTools;
 export { runCoreCommand };

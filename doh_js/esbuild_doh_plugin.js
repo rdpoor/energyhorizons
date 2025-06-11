@@ -58,6 +58,7 @@ Doh.Pod('esbuild_doh_plugin', {
   esbuild_doh_plugin: {
     moc: {
       deduplicate_packages: 'IsBoolean',
+      log_dedup_summary: 'IsBoolean',
       fix_files: 'IsBoolean',
       replace_native_modules: 'IsBoolean',
       skip_deduplication: 'IsArray',
@@ -65,6 +66,7 @@ Doh.Pod('esbuild_doh_plugin', {
       allow_external_resolution: 'IsBoolean'
     },
     deduplicate_packages: true,
+    log_dedup_summary: false,
     fix_files: true,
     replace_native_modules: true,
     allow_external_resolution: true,
@@ -156,7 +158,9 @@ let esbuild_doh_plugin = {
     // Register build end callback to show summary
     if (Doh.pod.esbuild_doh_plugin.deduplicate_packages) {
       build.onEnd(() => {
-        logDedupSummary();
+        if (Doh.pod.esbuild_doh_plugin.log_dedup_summary) {
+          logDedupSummary();
+        }
         return { errors: [] };
       });
     }

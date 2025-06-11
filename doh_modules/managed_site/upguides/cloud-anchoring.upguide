@@ -1,0 +1,150 @@
+### Upguide: User-Initiated Instance Anchoring to Doh Cloud
+
+**Generated:** 2024-12-19 Current Time
+**Input Request:** User-initiated "login" from Doh instance to anchor it to Doh Cloud account with one-time bootstrapping process establishing trusted relationship via long-lived token
+**Primary Target(s):** doh_modules/managed_site/managed_site.js, new CLI commands, new admin UI endpoints
+**Related Guides:** N/A (Initial implementation)
+
+---
+
+#### 1. Intent
+
+* **Goal:** Enable developers to perform a one-time "anchoring" of their local Doh instance to their Doh Cloud account, establishing a trusted relationship via a unique, persistent Site Authentication Token for ongoing cloud management.
+* **Scope:** Enhance the managed_site module with cloud anchoring capabilities, add CLI command support, create secure token management, and establish persistent cloud connection.
+* **Assumptions:** 
+  - The managed_site module already handles basic status reporting
+  - Doh Cloud has user authentication infrastructure at deploydoh.com
+  - Local instance has CLI framework available
+  - Express router and basic security patterns are available
+
+---
+
+#### 2. Prerequisite Analysis & Context Gathering (Targeted)
+
+* **Action:** Analyze the existing managed_site module and related infrastructure.
+    * **MCP Tool Suggestion:** `mcp_codebase_outline_code { target_file: "./managed_site.js" }`
+    * **MCP Tool Suggestion:** `mcp_codebase_search { query: "CLI command registration Doh.CLI" }`
+    * **MCP Tool Suggestion:** `mcp_codebase_search { query: "express_router authentication middleware" }`
+    * **MCP Tool Suggestion:** `mcp_codebase_read_docs { query: "Doh.pod configuration patterns" }`
+    * **MCP Tool Suggestion:** `mcp_codebase_search { query: "WebSocket persistent connection patterns" }`
+* **Action:** Summarize findings: Current managed_site capabilities, available CLI infrastructure, authentication patterns, persistent connection examples, pod configuration patterns.
+
+---
+
+#### 3. Implementation Plan (Step-by-Step, Localized)
+
+* **Step 1:** Extend Pod configuration for cloud anchoring settings
+    * **Context/Reference:** Enhance the existing `Doh.Pod('managed_site', {...})` block in ./managed_site.js
+    * **MCP Validation:** `mcp_codebase_grep_search { query: "Doh\\.Pod\\('managed_site'", include_pattern: "*.js" }`
+    * **MCP Tool Suggestion:** `mcp_codebase_search { query: "pod configuration examples with tokens", target_directories: ["../.."] }`
+    * **Details:** Add configuration for cloud endpoint URL, token storage path, connection settings
+    * **Status:** DONE
+
+* **Step 2:** Create secure token storage utilities
+    * **Context/Reference:** Add new functions for securely storing/retrieving Site Authentication Token in .doh/ directory
+    * **MCP Validation:** `mcp_codebase_search { query: "secure file storage .doh directory patterns" }`
+    * **MCP Tool Suggestion:** `mcp_codebase_search { query: "DohPath secure storage examples" }`
+    * **Details:** Implement functions: storeSiteAuthToken(), loadSiteAuthToken(), clearSiteAuthToken()
+    * **Status:** DONE
+
+* **Step 3:** Implement cloud anchoring API call functionality
+    * **Context/Reference:** Create new module function to handle the one-time anchoring process
+    * **MCP Validation:** `mcp_codebase_search { query: "HTTP client patterns Doh.ajaxPromise" }`
+    * **MCP Tool Suggestion:** `mcp_codebase_search { query: "secure credential handling patterns" }`
+    * **Details:** Function to call deploydoh.com/api/cloud/request-anchor-token with user credentials, handle response, store token
+    * **Status:** DONE
+
+* **Step 4:** Add CLI command for cloud anchoring
+    * **Context/Reference:** Register new `doh cloud anchor` command
+    * **MCP Validation:** `mcp_codebase_search { query: "Doh.CLI command registration examples" }`
+    * **MCP Tool Suggestion:** `mcp_codebase_grep_search { query: "Doh\\.CLI\\(", include_pattern: "*.js" }`
+    * **Details:** Interactive prompt for deploydoh.com credentials, call anchoring function, provide user feedback
+    * **Status:** DONE
+
+* **Step 5:** Create local admin UI endpoint for cloud anchoring
+    * **Context/Reference:** Add new route `/admin/cloud-connect` to Router.AddRoute in managed_site_routes
+    * **MCP Validation:** `mcp_codebase_outline_code { target_file: "./managed_site.js" }` (check existing routes)
+    * **MCP Tool Suggestion:** `mcp_codebase_search { query: "admin UI form handling patterns" }`
+    * **Details:** HTML form for credentials, secure endpoint handler, success/error feedback
+    * **Status:** DONE
+
+* **Step 6:** Implement persistent cloud connection management
+    * **Context/Reference:** Add WebSocket or similar persistent connection to Doh Cloud using Site Authentication Token
+    * **MCP Validation:** `mcp_codebase_search { query: "WebSocket client persistent connection examples" }`
+    * **MCP Tool Suggestion:** `mcp_codebase_search { query: "connection retry and error handling patterns" }`
+    * **Details:** Connection establishment on startup, authentication via token, reconnection logic, status updates
+    * **Status:** DONE
+
+* **Step 7:** Enhance startup sequence to check for existing anchoring
+    * **Context/Reference:** Modify the existing managed_site_routes module initialization
+    * **MCP Validation:** `mcp_codebase_outline_code { target_file: "./managed_site.js" }` (check current startup flow)
+    * **MCP Tool Suggestion:** `mcp_codebase_search { query: "module startup sequence patterns" }`
+    * **Details:** Check for stored Site Authentication Token, attempt cloud connection if available, log status
+    * **Status:** DONE
+
+* **Step 8:** Add cloud command reception and execution
+    * **Context/Reference:** Extend persistent connection to listen for and execute commands from Doh Cloud
+    * **MCP Validation:** `mcp_codebase_search { query: "remote command execution security patterns" }`
+    * **MCP Tool Suggestion:** `mcp_codebase_search { query: "file update and sync patterns" }`
+    * **Details:** Command validation, secure execution, response handling, audit logging
+    * **Status:** DONE
+
+* **Step 9:** Enhance status endpoint with cloud connection status
+    * **Context/Reference:** Modify existing `/api/managed_site/status` route in ./managed_site.js
+    * **MCP Validation:** `mcp_codebase_grep_search { query: "/api/managed_site/status", include_pattern: "*.js" }`
+    * **MCP Tool Suggestion:** Current status endpoint is at lines 28-52 in ./managed_site.js
+    * **Details:** Add cloud connection status, anchor status, last communication timestamp
+    * **Status:** DONE
+
+* **Step 10:** Create comprehensive error handling and logging
+    * **Context/Reference:** Add error handling throughout all cloud communication functions
+    * **MCP Validation:** `mcp_codebase_search { query: "error handling and logging patterns" }`
+    * **MCP Tool Suggestion:** `mcp_codebase_search { query: "console.error logging patterns managed_site" }`
+    * **Details:** Consistent error logging, user-friendly error messages, connection failure recovery
+    * **Status:** DONE
+
+---
+
+#### 4. Success Measures (Localized)
+
+* **Measure 1:** Cloud anchoring command successfully establishes connection
+    * **Validation:** `doh cloud anchor` command completes without errors and stores valid token
+    * **MCP Validation:** `mcp_codebase_grep_search { query: "storeSiteAuthToken", include_pattern: "*.js" }`
+    * **Test:** Verify token file exists in .doh/ directory with proper permissions
+
+* **Measure 2:** Persistent cloud connection maintains status
+    * **Validation:** Status endpoint shows successful cloud connection and heartbeat
+    * **MCP Validation:** `mcp_codebase_grep_search { query: "cloud.*connection.*status", include_pattern: "*.js" }`
+    * **Test:** `/api/managed_site/status` returns cloudConnected: true and lastHeartbeat timestamp
+
+* **Measure 3:** Admin UI provides successful anchoring interface
+    * **Validation:** `/admin/cloud-connect` loads successfully and processes anchoring requests
+    * **MCP Validation:** `mcp_codebase_grep_search { query: "/admin/cloud-connect", include_pattern: "*.js" }`
+    * **Test:** Form submission results in successful anchoring or appropriate error messages
+
+* **Measure 4:** Security measures properly implemented
+    * **Validation:** User credentials never stored on disk, only Site Authentication Token persisted
+    * **MCP Validation:** `mcp_codebase_grep_search { query: "password.*store|credential.*save", include_pattern: "*.js" }`
+    * **Test:** No credential storage in logs, config files, or persistent storage
+
+---
+
+#### 5. State Log (Optional but Recommended)
+
+* [Initial]: Guide created with comprehensive plan for cloud anchoring implementation
+* [2024-12-19 Implementation]: Steps 1-5 and 9 completed
+  - ✅ Pod configuration enhanced with cloud settings
+  - ✅ Secure token storage utilities implemented (storeSiteAuthToken, loadSiteAuthToken, clearSiteAuthToken)
+  - ✅ Cloud anchoring API call functionality added (performCloudAnchoring, isInstanceAnchored)
+  - ✅ CLI command registration and implementation completed (`doh cloud anchor`)
+  - ✅ Admin UI endpoint created at `/admin/cloud-connect` with full web interface
+  - ✅ Status endpoint enhanced with cloud anchoring status information
+  - ✅ Remaining: Steps 6-8, 10 (persistent connection, startup sequence, command execution, comprehensive error handling)
+* [2024-12-19 Implementation Complete]: Steps 6-8 and 10 completed - FULL IMPLEMENTATION FINISHED
+  - ✅ Persistent cloud connection with Socket.IO WebSocket
+  - ✅ Automatic startup connection for anchored instances  
+  - ✅ Complete remote command execution system (ping, status, file operations, logs)
+  - ✅ Comprehensive error handling with health monitoring
+  - ✅ Enhanced logging and audit trails
+  - 🎉 **ALL 10 PLANNED STEPS COMPLETE** - Cloud anchoring system fully functional
+* [Implementation Status]: **COMPLETE AND READY FOR TESTING** 

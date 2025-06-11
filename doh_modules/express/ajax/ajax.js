@@ -366,16 +366,37 @@ Doh.Module('ajax', [
             }
             
             if (response.status === 401 || response.status === 403) {
+              // CRITICAL FIX: Better handling of authentication failures
+              console.log('Authentication failed (401/403), attempting token refresh');
+              
+              // Check if we have a refresh token before attempting refresh
+              const refreshToken = Doh.getRefreshToken();
+              if (!refreshToken) {
+                console.log('No refresh token available, clearing tokens and forcing relogin');
+                Doh.clearTokens();
+                // Trigger browser-side logout if user object exists
+                if (Doh.user && typeof Doh.user.forceRelogin === 'function') {
+                  Doh.user.forceRelogin();
+                }
+                throw new Error('Authentication required - no refresh token');
+              }
+              
               // Token might be expired, try to refresh
-              console.log('Token might be expired, try to refresh');
               return Doh.refreshToken().then(newToken => {
                 if (newToken) {
                   // Update token in fetchOptions and retry
                   fetchOptions.headers['Authorization'] = `Bearer ${newToken}`;
                   console.log('Token refreshed, retrying fetch');
                   return fetch(url, fetchOptions);
+                } else {
+                  console.log('Token refresh failed, clearing tokens and forcing relogin');
+                  Doh.clearTokens();
+                  // Trigger browser-side logout if user object exists
+                  if (Doh.user && typeof Doh.user.forceRelogin === 'function') {
+                    Doh.user.forceRelogin();
+                  }
+                  throw new Error('Unable to refresh token');
                 }
-                throw new Error('Unable to refresh token');
               });
             }
             return response;

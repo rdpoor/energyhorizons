@@ -64,8 +64,8 @@ class DohCLI {
 
     if (scriptPath !== '/doh_js/dohtools.js') {
       await import(DohPath.Dot('^/../' + scriptPath)).catch(error => {
-        throw console.error(`Error executing command '${command}':`, error);
-        // throw error;
+        console.error(`Error executing command '${command}':`);
+        throw error;
       });
 
     } else {

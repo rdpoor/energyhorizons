@@ -112,7 +112,7 @@ df.forge(null, [
 ### Data Operations
 
 #### `ReplaceIntoDB`
-Inserts or updates a record in the database.
+Inserts or updates a record in the database. **This command is designed for use with the default Idea Schema (tables with `id` and `data` columns). For tables with custom schemas, use `RunInDB` with an `INSERT OR REPLACE` SQL statement.**
 
 ```javascript
 let df = New('Dataforge');

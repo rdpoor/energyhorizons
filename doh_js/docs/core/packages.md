@@ -181,7 +181,7 @@ pod: {
 }
 ```
 
-This data is merged into the global pod configuration and can be accessed via `Doh.Pod.get('package_name.key')`.
+This data is merged into the global pod configuration and can be accessed via `Doh.pod.key`. Placing your keys in a container is preferred.
 
 ### CLI Commands
 

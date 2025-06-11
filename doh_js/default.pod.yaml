@@ -35,6 +35,13 @@ dohball_deployment:
     compile_manifest: IsBoolean
   expose_packages: false
   expose_doh_js: false
+  ignore_paths:
+    - doh_js
+    - .doh
+    - node_modules
+    - .git
+    - .vscode
+    - dist
   compile_manifest: false
 
 # files and directories to ignore when packaging

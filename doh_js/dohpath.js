@@ -59,7 +59,7 @@ await (async function () {
   const trimSlashes = (str) => removeTrailingSlash(removeLeadingSlash(toForwardSlash(str)));
   // first, replace ONLY an initial .. with a ^/..
   // then, replace ONLY an initial . with a ^
-  const convertDotNotation = (str) => str.replace(/^(\.\/)/, '^/').replace(/^\./, '^');
+  const convertDotNotation = (str) => str.replace(/^(\.\.\/)/, '^/../').replace(/^(\.\/)/, '^/').replace(/^\./, '^');
   const cleanDefaultRelativeLoadDohFrom = function (ArbitrarilyRelativePath) {
     if (!ArbitrarilyRelativePath) ArbitrarilyRelativePath = import.meta.url;
     if (typeof ArbitrarilyRelativePath !== 'string') {

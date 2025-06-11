@@ -277,7 +277,7 @@ if (typeof globalThis.DohStartTime === 'undefined') {
     const trimSlashes = (str) => removeTrailingSlash(removeLeadingSlash(toForwardSlash(str)));
     // first, replace ONLY an initial .. with a ^/..
     // then, replace ONLY an initial . with a ^
-    const convertDotNotation = (str) => str.replace(/^(\.\/)/, '^/').replace(/^\./, '^');
+    const convertDotNotation = (str) => str.replace(/^(\.\.\/)/, '^/../').replace(/^(\.\/)/, '^/').replace(/^\./, '^');
     const cleanDefaultRelativeLoadDohFrom = function (ArbitrarilyRelativePath) {
       if (!ArbitrarilyRelativePath) ArbitrarilyRelativePath = import.meta.url;
       if (typeof ArbitrarilyRelativePath !== 'string') {
@@ -3599,6 +3599,9 @@ if (typeof globalThis.DohStartTime === 'undefined') {
       'import': async function (loadStatement, from, relpath, loaderType, forceReload = false) {
         // Check if the original dependency string contains the reload decorator
         if (!forceReload && Doh.ModulePromises[loadStatement]) return Doh.ModulePromises[loadStatement];
+        if (IsLocalFileBrowser()) {
+          from = '..' + from;
+        }
         Doh.ModulePromises[loadStatement] = Doh.__load_esm_module(from, relpath, forceReload).then(module => Doh.__globalize_module_exports(module));
         // Doh.Loaded[dep] = Doh.ModulePromises[dep];
         return Doh.ModulePromises[loadStatement];
@@ -4398,7 +4401,7 @@ if (typeof globalThis.DohStartTime === 'undefined') {
       // if we haven't started the performance counter, start it now
       Doh.performance.start(module_name);
 
-      let resolver = null, runonce = false;
+      let resolver = null, rejector = null, runonce = false;
       Doh.ModuleIsLoaded[module_name] = new Promise((resolve, reject) => {
         // expose the resolver so we can resolve the promise later
         resolver = async function () {
@@ -4435,18 +4438,7 @@ if (typeof globalThis.DohStartTime === 'undefined') {
               }
 
               // if the varToFind contains a . then it's an export name and property, we need to split it
-              if (varToFind.includes('.')) {
-                // I think this code is imposible to reach
-                // let [varName, varProp] = varToFind.split('.');
-                // if (IsDefined(Doh.Globals[varName])) {
-                //   foundRef = Doh.Globals[varName][varProp];
-                // } else if (IsDefined(globalThis[varName])) {
-                //   foundRef = Doh.Globals[varName][varProp] = globalThis[varName][varProp];
-                // } else {
-                //   // if we didn't find the global for a complex name, then we need to throw an error because there is no reasonable default
-                //   console.error(colorize('Doh Module:', error_color), colorize(module_name, warn_color), colorize('missing required param:', error_color), colorize(varToFind, info_color));
-                // }
-              } else if (IsDefined(globalThis[varToFind])) {
+              if (IsDefined(globalThis[varToFind])) {
                 foundRef = Doh.Globals[varToFind] = globalThis[varToFind];
               } else if (IsDefined(Doh.Globals[varToFind])) {
                 foundRef = Doh.Globals[varToFind];
@@ -4486,6 +4478,8 @@ if (typeof globalThis.DohStartTime === 'undefined') {
           // resolve the promise
           resolve(result);
         }
+        // reject the promise if the callback throws an error
+        rejector = reject;
       });
 
       // check if requires is a string, if so, make it an array
@@ -4506,6 +4500,7 @@ if (typeof globalThis.DohStartTime === 'undefined') {
       if (globals) Doh.__globalize_keys(globals);
 
       // fancy new globalizer
+      // this is where we first find and prepare import references
       let paramsDef, paramMap = {};
       paramsDef = Doh.Packages[module_name]?.params;
       if (paramsDef) {
@@ -4698,6 +4693,7 @@ if (typeof globalThis.DohStartTime === 'undefined') {
 
     console.groupEnd();
   };
+  Doh.load_status = Doh.loadstatus;
 
 
   //MARK: Object
@@ -7222,7 +7218,7 @@ if (typeof globalThis.DohStartTime === 'undefined') {
             // it's a relative path, so we need to convert it to a path that contains the LoadDohFrom
             //Doh.warn('Doh: Loading a local file URL as a relative path:', _src);
             // debugger;
-            return Promise.resolve({});
+            // return Promise.resolve({});
           }
         }
         return import(_src).catch(e => {

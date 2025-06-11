@@ -2,214 +2,137 @@
 
 ![DohBalls]({{Package:deploydoh_home}}/images/dohballs.png?size=small)
 
-A Dohball is *a content-addressed snapshot of one or more Doh packages that share the same folder root*, expressed as a self-extracting tarball whose only internal metadata is `dohball.json { version, removals[] }`. Everything else a Dohball "knows" about itself lives in the *Auto-Packager manifests* outside the archive.
+A Dohball is an **automated snapshot of a folder's contents**, where that folder acts as a **container for one or more [Doh Packages](https://www.google.com/search?q=/docs/core/packages) or [Modules](https://www.google.com/search?q=/docs/core/modules)**. These snapshots are versioned using Doh's internal `dohver.js` incremental versioning system.
 
-This guide covers:
-*   The role of Dohballs in **sharing reusable code** between projects.
-*   How Dohballs complement Git for specific sharing scenarios.
-*   Creating (**baking**) and managing Dohballs with the [Doh CLI](/docs/tools/cli).
-*   Configuring Dohball settings in `pod.yaml`.
-*   Understanding the Dohball sharing and update lifecycle.
+The primary purpose of Dohballs is to provide a **"management-less" way for a developer's Doh projects to act as internal repositories for each other.** 
 
-## Why Use Dohballs for Sharing?
+---
+This system excels at facilitating the seamless sharing, linear updating, and organic evolution of:
 
-Dohballs address common pain points found in traditional module management when it comes to sharing code across project boundaries, especially within a cohesive ecosystem like Doh.
+  * A **foundational internal toolkit**: your personal or team's collection of essential utilities, base Doh patterns (like `DohPath`), and custom modules.
+  * Project-specific components that need to be shared across different parts of a larger Doh application or between closely related instances.
 
-| Hidden pain in normal module managers                                                                   | How a Dohball solves it                                                                                                                                                        |
-| ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Path lock-in** – moving a package often breaks imports, relative assets, and manifest paths.          | Package names, not paths, are the installation contract. Relocating a folder just rebakes its Dohball; *no code change required in consuming projects.*                              |
-| **Manifests in every package** – each module might own a private `package.json`, `tsconfig.json`, etc.    | A *single* project-level Auto-Packager manages manifests for every package. The Dohball itself is manifest-light, containing only essential versioning and cleanup info. The package itself stays oblivious. |
-| **"One folder per module" dogma** – often prevents sharing a common asset folder or colocating micro-modules. | Multiple packages can live in the same folder and therefore share the same Dohball and version stream. If you later split them, they can inherit their last shared version and diverge naturally. |
-| **Ship-vs-share confusion** – developers might mix up "bundle for prod" with "make this installable elsewhere."   | Dohballs are explicitly for *sharing* code between Doh installs. Application deployment to production environments has its own dedicated pipelines (Git, Doh Cloud, etc.).                 |
+Think of Dohballs not as a replacement for NPM (for public libraries) or Git (for comprehensive source control), but as a specialized, complementary tool. They are particularly powerful for:
 
-**Dohballs and Git:**
+  * Cultivating your **evolving internal component library**. Let them grow from simple helpers into distinct modules, splitting and refactoring "like cells" as your needs dictate, without the typical packaging overhead for each internal iteration.
+  * Ensuring consistency and easily propagating updates of your core utilities and architectural patterns across all your Doh projects.
+  * Gracefully upgrading revisited projects with your latest foundational code.
 
-Git is your primary tool for source code versioning, branching, and collaboration within a single project repository. Dohballs complement Git by providing a mechanism to package a *specific state* of a folder (containing one or more packages) from one project repository into a portable, versioned unit that other Doh projects can easily consume as a dependency.
+Dohballs are designed for largely transparent operation, automated by the [Auto-Packager](https://www.google.com/search?q=/docs/core/auto_packager) and the `dohball_host` module. They are distinct from real-time file synchronization systems; Dohballs provide a more deliberate, version-incremented way to update shared codebases. In essence, a Dohball is more akin to a **versioned "fork" of a shared code segment** than a traditional package version. Future enhancements may even allow "melding" these forks.
 
-*   **Git:** Tracks history, enables collaboration on source code.
-*   **Dohballs:** Package specific versions of code (from a Git repo) for easy sharing and consumption by *other* Doh projects.
+## The "Why": Simplifying Your Internal Code Lifecycle
 
-## Key Concepts of Dohballs for Code Sharing
+Dohballs address the desire to manage an internal suite of shared code with maximum flexibility and minimal administrative burden:
 
-### 1. Folder-Based Architecture for Sharing
-A Dohball represents an entire folder structure, making it a "Folder Repository" snapshot. It contains:
-- One or more related Doh packages and modules
-- All their assets and resources
-- Relevant configuration files
-- Sub-directories and their contents
+  * **Frictionless Tool Evolution:** Your internal tools can mature without needing to publish a formal package at each step.
+  * **Eliminating Repetitive Setup:** Avoids manual copying of shared code or complex sub-module configurations.
+  * **Reduced Management Overhead:** No need to maintain individual manifests for every small shared utility for internal use. The Auto-Packager handles this project-wide.
+  * **Streamlined Updates:** Consuming projects can update to your latest "good code" with a simple `doh upgrade`.
 
-This structure ensures that all related components are versioned and shared together, maintaining their internal relationships and dependencies when installed in another project.
+**Dohballs & Git: A Crucial Partnership**
 
-### 2. Package-Centric Interface
-Although Dohballs operate at the folder level for packaging, they are always accessed by consuming projects through the [Doh packages](/docs/core/packages) they contain:
+  * **Git:** Remains your fundamental tool for source code history and version control.
+  * **Committing Baked Artifacts for Transport & History:**
+      * The `dohball.json` file (containing the `dohver.js`-managed version) resides in the *source folder* of the packages being baked. The `doh bake` command updates this file. **Users never edit or create `dohball.json` files manually; `doh bake` handles this.**
+      * The actual baked Dohball `.tar.gz` files (created in `project_root/dohballs/`) are also intended to be **committed to your Git repository** alongside your source code and the updated source `dohball.json` files.
+        This practice serves two main purposes:
+        1.  It provides a Git-tracked history of your baked artifacts.
+        2.  For remote/team sharing, Git acts as the **transport mechanism** to get these baked artifacts onto the file system of the Doh instance that will host them.
 
-```javascript
-// You never reference a Dohball directly by its filename in consuming code.
-// Instead, you request a package, and the Doh system handles finding and installing
-// the Dohball that provides that package version.
-Doh.load('MySharedUIComponents'); // 'MySharedUIComponents' is a package
-```
-This abstraction keeps the developer experience focused on logical code organization, while the system handles the physical distribution and installation of the underlying Dohball.
+## Core Concepts - How Dohballs Work
 
-### 3. Content-Based Versioning and Minimal Metadata
-Dohballs use a robust versioning system based on the **hash of the folder's contents**.
-*   Identical folder content always results in the same Dohball version.
-*   Any change to any file within the folder automatically triggers a new version upon baking.
-The Dohball archive (`.tar.gz`) itself contains minimal metadata: a `dohball.json` file with:
-    *   `version`: The content-hash version string.
-    *   `removals[]`: An array of file paths that were removed since the previous version of this Dohball (used for cleanup on the installing side).
-Crucially, detailed manifests like `package_manifest.json` or `dohball_manifest.json` (which maps packages to Dohballs) live *outside* the Dohball, typically in the `/doh_js/manifests/` directory of the *consuming project*, and are managed by the [Auto-Packager](/docs/core/auto_packager).
+  * **Folders as Package Containers:** A Dohball is a `.tar.gz` archive of a specific folder's state, containing source files where Doh Packages/Modules are defined.
+  * **Package-Centric Interaction:** You always interact with shared code via Doh Package names (e.g., `Doh.load('MyCustomUtility')`).
+  * **Versioning with `dohver.js`:**
+      * The `version` in a package's source `dohball.json` is an incremental string like `0.0.1a`, managed by `dohver.js`. **This is not a content hash.**
+      * `doh bake` uses `dohver.js` to update this version in the source `dohball.json` if changes warrant.
+      * This indicates a **linear progression of updates**. Access to *specific* older versions relies on Git history.
+  * **Minimal Internal Archive Metadata (`dohball.json` inside the `.tar.gz`):**
+      * `version`: The `dohver.js`-generated version, copied from the source `dohball.json`.
+      * `removals[]`: An array of file paths no longer present, for cleanup by the consumer.
+  * **Consumer's Auto-Packager Manages Full Manifests:** Detailed manifests are *not* in the Dohball. The **consuming project's Auto-Packager** analyzes installed Dohball contents and updates its *own local manifests*.
 
-### 4. Sharing Lifecycle: Bake, Host, Install
-```
- ┌───────────────────────────────┐
- │ Your project sources (a folder) │  <-- Developer works here
- │   ├─ pkgA  (Doh.Package)      │
- │   ├─ pkgB  (Doh.Module)       │
- │   └─ assets/                  │
- └──────────────┬────────────────┘
-                │  Auto-Packager scans this folder
-                ▼
-    ┌───────────────────────────────┐
-    │ Bake Dohball (content hash V) │  doh bake
-    │   • makes  /dohballs/...tar.gz│  (or uploads to dohball_host)
-    │   • archive has dohball.json  │
-    │     { version, removals[] }   │
-    └──────────────┬────────────────┘
-                   │ Host / Sync (local or remote)
-                   ▼
-    ┌───────────────────────────────┐
-    │ Other Doh projects            │  Doh.load('pkgA')
-    │  (consuming projects)         │  doh install pkgA
-    └───────────────────────────────┘
-```
+## Working with Dohballs: Practical Workflows & Configuration
 
-1.  **Baking**: Creating a compressed archive (`.tar.gz`) of a folder. The [Auto-Packager](/docs/core/auto_packager), knowing the project's file structure and `dohball_deployment` settings, handles this.
-2.  **Hosting**: Storing the baked Dohball. This can be a local `/dohballs/` directory (for local sharing/testing) or a remote server specified in the *consuming project's* `pod.yaml` (`dohball_host`).
-3.  **Installation**: When a consuming project requests a package (e.g., via `Doh.load('pkgA')`), the Doh system checks its `dohball_manifest.json` (managed by its own Auto-Packager). If the package is from a Dohball not yet installed, it's downloaded from a configured `dohball_host` and extracted.
-4.  **Verification & Cleanup**: Ensures integrity and removes obsolete files (listed in `dohball.json` -> `removals`) from previous versions during updates.
+The `dohball_host` system is networkable. A Doh instance can consume from multiple hosts (via `http://` or `https://` URLs in `pod.yaml`'s `dohball_host` list) and can be both a host and a consumer, enabling "lazy push/pull" of code between isolated monorepos or instances.
 
-## Operational Flow for Sharing Code via Dohballs
+### Fine-Tuning Dohball Contents: The Ignore System
 
-For most application development, your primary deployment method to production environments will involve Git-based workflows, CI/CD pipelines, or dedicated services like Doh Cloud.
+Control what gets included using these `pod.yaml` settings:
 
-**Dohballs come into play when you need to expose your project, or specific folders within it, as a reusable code library for other Doh.js projects to consume.** This is where their manifest-light, easily installable nature shines for managing inter-project dependencies.
+1.  **Global `packager_ignore`:** Dohballs respect global `packager_ignore` settings (e.g., for `node_modules`, `.git`).
+2.  **Dohball-Specific Ignores (in `dohball_deployment` section):**
+      * `ignore_paths`: List directory paths (relative to project root) never to include in any Dohball, nor whose packages should trigger Dohball creation for that path.
+      * `ignore_packages`: List specific Doh Package names. These packages won't be "exposed," and their containing folders won't be baked *on their behalf*. (Often, `expose_packages: '*'` is used, with these ignores providing refinement.)
+3.  **Implicit Exclusion of Nested Dohball Containers:** If Folder A (being baked) contains Sub-folder B, and B is itself a root for packages forming their own separate Dohball, B's contents are excluded from A's Dohball.
 
-The typical workflow for a developer sharing code using Dohballs is:
+### A. Local Toolkit Synchronization (Your Internal Component Library)
 
-1.  **Develop Freely:** Create or modify your packages, modules, and assets within their shared folder. You can co-locate micro-packages that belong together. You generally don't need to manually manage manifests for the purpose of Dohball creation.
-2.  **`doh bake` (Prepare for Sharing):**
-    *   Run `doh bake` in the project containing the code you want to share.
-    *   The Auto-Packager identifies folders eligible for Dohball creation based on your `pod.yaml` (`dohball_deployment` settings).
-    *   It groups packages by their common ancestor folder.
-    *   For each such folder, it computes a content hash. If the hash is new (meaning content changed) or if using `doh rebake`, it creates/updates the Dohball `.tar.gz` archive in the local `/dohballs/` directory or uploads it if a *baking-specific* host is configured (less common for this command).
-    *   The archive includes the `dohball.json` with the new version and any file removals since the previous version of *that specific Dohball lineage*.
-3.  **Host the Dohball:**
-    *   Make the baked `.tar.gz` file accessible to other projects. This could be:
-        *   Committing it to a shared location if your team uses one for local Dohballs.
-        *   Manually copying it to a known local path accessible by consuming projects.
-        *   Uploading it to a URL specified in the `dohball_host` entries of the *consuming projects'* `pod.yaml` files.
-4.  **Install/Consume in Another Doh Project:**
-    *   In a different Doh.js project that needs to use the shared code:
-        *   Simply call `Doh.load('packageName')` for a package contained in the Dohball.
-        *   Or, explicitly run `doh install packageName`.
-    *   The consuming project's Doh runtime (guided by its own Auto-Packager and manifests, and `dohball_host` settings) will:
-        *   Determine which Dohball provides the requested package and version.
-        *   Download it if not present locally.
-        *   Extract it to the correct relative path (maintaining the shared folder structure).
-        *   Update its own manifests to incorporate the newly available packages.
-5.  **Update & Clean-Up in Consuming Projects:**
-    *   When a consuming project runs `doh upgrade` or `doh update` (which can trigger upgrades), it checks configured `dohball_host`s for newer versions of installed Dohballs.
-    *   If a newer version is found and installed, the `removals` list from its `dohball.json` is processed to delete stale files and empty directories left by the previous version, ensuring a clean installation.
+**Goal:** Effortlessly keep your foundational utilities and custom Doh patterns consistent across all your local Doh projects.
 
-## Working with Dohballs: CLI and Configuration
+**One-Time Setup:**
 
-### Dohball Creation (`doh bake`)
-Leverages the [Auto-Packager](/docs/core/auto_packager).
-*   **`doh bake` / `doh rebake` (no arguments):** Checks *all* packages eligible for exposure (per `pod.yaml`'s `dohball_deployment`) and bakes/rebakes those whose content has changed (or all for `rebake`).
-*   **`doh bake [pkg1]...` / `doh rebake [pkg1]...`:** Checks *only the specified packages* (if they are eligible) and bakes/rebakes.
+1.  **Your "Toolkit Monorepo" Project (`pod.yaml`):**
+      * Set `dohball_deployment.expose_packages: '*'`.
+      * Ensure `dohball_deployment.compile_manifest: true`.
+      * Add the `dohball_host` module to `host_load`.
+2.  **Each *Consuming* Local Project (`pod.yaml`):**
+      * Add your Monorepo (when running) as a `dohball_host`:
+        `dohball_host: ['http://localhost:PORT_OF_MONOREPO']` (e.g., `http://localhost:3001`).
 
-```bash
-# Bake all eligible packages from this project (if their content changed)
-doh bake
+**Ongoing Workflow:**
 
-# Force rebake of specific eligible packages from this project
-doh rebake core_ui data_module
-```
-The output `.tar.gz` files are typically placed in your project's local `/.doh/dohballs/` directory, from where they can be hosted.
+  * **I. Update Your Toolkit Monorepo:**
 
-### Configuration (`pod.yaml`)
+    1.  **Edit & Refine Tools.**
+    2.  **Bake:** In the Monorepo, run `doh bake`.
+          * *What this does:* Updates `dohver.js` versions in source `dohball.json` files and creates/updates `.tar.gz` archives in `/dohballs/`. Commit these changes to Git.
+    3.  **Run Monorepo as Host:** In the Monorepo, `doh run`.
+          * *What this does:* Starts the Monorepo's `dohball_host` module. Its public manifest is rebuilt, ready to serve updates.
 
-**In the Project *Creating/Baking* Dohballs:**
-```yaml
-# pod.yaml of the project WHOSE CODE IS BEING SHARED
+  * **II. Update a Consuming Local Project:**
 
-# Specify which packages from THIS project to make available via Dohballs
-dohball_deployment:
-  expose_packages: '*'        # Expose all packages in this project as Dohballs
-  # or expose_packages: ['sharedLib1', 'sharedUtility']
-  ignore_packages:            # Optionally, except these
-    - private_package
-  ignore_paths:               # And anything in these paths (won't be in any Dohball)
-    - .git
-    - node_modules
-    - secret_folder
-    - test_data
-```
+    1.  **Upgrade:** In the consuming project, `doh upgrade`.
+          * *What this does:* Contacts your Monorepo host, sees newer `dohver.js` versions, downloads, and installs.
+    2.  **Reboot (if needed):** `doh run` in the consuming project.
 
-**In the Project *Consuming* Dohballs:**
-```yaml
-# pod.yaml of the project USING THE SHARED DOHBALLS
+### B. Team Sharing / Remote Host Updates (Git-Mediated Artifact Transport)
 
-# Define Dohball hosts (in resolution order) for fetching remote Dohballs
-# These are the URLs where the .tar.gz files are hosted.
-dohball_host:
-  - https://my-company.dohball.host/main
-  - file:///path/to/local/shared/dohballs # For local sharing
+**Goal:** Use Git to transport *baked Dohball artifacts* to a shared Doh instance (e.g., team server), which then acts as the `dohball_host` for other consumers. This facilitates team management of a shared component library where "build artifacts" become installable.
 
-# Control automatic update behavior when Doh.load() encounters a package from a Dohball
-always_upgrade_dohballs: false # If true, Doh.load checks host for newer version
-always_reinstall_dohballs: false # If true, Doh.load always redownloads/installs
-```
+**Steps (Sharer/Developer - On Local Machine):**
 
-### Installation, Management, and Updates in Consuming Projects
+1.  **Develop & Bake:** Make code changes, run `doh bake`.
+      * *What this does:* Updates source `dohball.json` versions and refreshes `.tar.gz` files in `/dohballs/`.
+2.  **Commit & Push Artifacts to Git:** Commit source code, updated source `dohball.json` files, and the `/dohballs/` directory. Push to your remote Git repo.
+      * *What this does:* Git now holds the specific "build artifacts" (Dohballs and their versioned source `dohball.json`s), ready for the hosting instance.
 
-When a package contained within a Dohball is requested (e.g. `Doh.load('someSharedPackage')`), the Doh system in the *consuming project* handles finding, downloading, and extracting the Dohball automatically if needed.
+**Steps (Remote Hosting Instance - e.g., Central Team Server):**
 
-**Manual Management (CLI in Consuming Project):**
-```bash
-# View status of installed Dohballs and the packages they provide
-doh status
-doh status verbose
+1.  **Pull Artifacts from Git:** On the server, `git pull`.
+      * *What this does:* Updates the server's local file system with the new `.tar.gz` files in its `/dohballs/` and the source `dohball.json` files.
+2.  **Reboot Service:** Restart the Doh application on this host (e.g., `doh pm2 restart`).
+      * *What this does:* The host (running `dohball_host` module with `compile_manifest: true`) regenerates its public manifest, reflecting the now-updated Dohballs it can serve.
 
-# Run packager (includes Dohball checks against dohball_host)
-doh update
+**Steps (Consuming Instance - Team Member's Project, CI, etc.):**
 
-# Upgrade installed Dohballs to latest compatible versions from configured hosts
-doh upgrade
+1.  **Configure Host:** Ensure its `pod.yaml` lists the remote host.
+2.  **Upgrade Consumer:** Run `doh upgrade`.
+      * *What this does:* Fetches the host's updated public manifest, compares `dohver.js` versions, and `doh install`s newer Dohballs.
+3.  **Reboot (if needed):** Restart its Doh application.
 
-# Reinstall all Dohballs (clears local cache first, then fetches from hosts)
-doh reinstall
-```
+## 6\. FAQ
 
-## Edge Scenarios & How They Behave
+| Question                                                              | Answer                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| :-------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Q: Can I mix npm deps & Dohballs?** | Absolutely. Doh’s NPM bridge works seamlessly alongside Dohballs.                                                                                                                                                                                                                                                                                                                    |
+| **Q: What if two hosts offer a package with the same name?** | The order of `dohball_host` declarations in the consumer's `pod.yaml` is the **sole decider**. The first host in the list that provides the package "wins" for that package. `dohver.js` versions are used to determine if an update is needed *from that chosen host*, but not to select between hosts.                                                                   |
+| **Q: How do I "un-install" a Dohball from a consumer?** | There isn't a formal `doh uninstall-dohball` command. Dohballs are designed for flexibility. If you no longer need packages from a specific Dohball: 1. Remove `Doh.load()` calls or dependency listings for its packages from your source. 2. You can manually delete the installed folder (typically found under a path mirroring its origin within your project, or in `/.doh/dohballs/` if managed there by older installers). Doh itself does **not** automatically prune these package files or manage this aspect of the lifecycle. Its "package management-like" systems are for discovery, installation, and linear updates of these "fork-like" code snapshots, not full lifecycle management. |
+| **Q: Do Dohballs work for binary assets?** | Yes—images, shaders, WASM, etc. If it’s in the folder tree that gets baked, it’s in the tarball.                                                                                                                                                                                                                                                                                          |
 
-| Scenario                                                                 | What happens                                                                                                     |
-| ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
-| **Two packages share a folder, then you split them into separate dirs.** | Each new folder starts its own Dohball lineage. If they were previously in one Dohball, that lineage for the old combined folder effectively ends. Consumers would need to update to depend on the new, separate Dohballs if desired. |
-| **A package moves to a different folder within the same project.**       | Its *identity* is still the package name. If the new folder is baked as a Dohball, consuming projects will find the package provided by this new Dohball upon next update/install. The old Dohball (if no longer baked or empty of unique packages) might become obsolete. |
-| **Forking a project to make a private mod of its shared code.**          | You can bake Dohballs from your forked project and host them on a private `dohball_host`. Consuming projects just add your private host to their `dohball_host` list (typically with higher priority). |
+## 7\. Design Philosophy Recap
 
-## Common Confusion Points Clarified
+**Source remains sacred; builds remain ephemeral artifacts.**
+Dohballs embody this by snapshotting folders *as-is* and letting every consuming Doh instance re-interpret their contents through its own Auto-Packager. The `dohver.js` system provides a simple, linear way to track updates. You trade the complexity of semantic versioning and manual publishing for teleport-grade portability and the freedom to organically evolve hundreds of interconnected components within your own Doh ecosystem.
 
-### "Why not just use Git for sharing code between projects?"
-Git is excellent for managing the source code *within* a single repository. For sharing versioned, ready-to-consume code *between separate Doh projects* (especially when you don't want consumers to clone the entire source repo or deal with its build process), Dohballs offer a more direct and cleaner dependency mechanism. They provide a stable, packaged "release" of a folder's content.
-
-### "Why version folders instead of individual packages?"
-By versioning folders (which may contain multiple packages):
-1.  All related components and their relative asset paths stay in sync.
-2.  Internal compatibility within that shared folder is guaranteed for that version.
-3.  Sharing a coherent set of related micro-packages becomes simpler.
-
-### "How do I know which packages are in which Dohball?"
-In the *consuming project*, the `dohball_manifest.json` (auto-generated in its `/doh_js/manifests/` directory) maps package names to the Dohballs that provide them and their versions. You can also use `doh status verbose` in the consuming project. The developer *sharing* the code defines what gets into a Dohball via `dohball_deployment` settings, implicitly by folder structure.
+Happy baking—and even happier *not thinking about it most of the time*\!

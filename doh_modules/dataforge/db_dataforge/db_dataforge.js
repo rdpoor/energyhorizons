@@ -34,13 +34,38 @@ Doh.Module('db_dataforge', [
   }
 
   const opreg = {
+    IndexJSONPropertyInDB: {
+      method: function (table, property_name) {
+        let db = this.selectedDB;
+        if (db) {
+          try {
+            // if the table is a `database.table` then we need to index the property of the table
+            if (table.includes('.')) {
+              table = table.split('.')[1];
+            }
+            if (IsNode()) {
+              db.prepare(`CREATE INDEX IF NOT EXISTS idx_${table}_${property_name} ON ${table} (json_extract(data, '$.${property_name}'))`).run();
+            } else {
+              alasql(`CREATE INDEX IF NOT EXISTS idx_${table}_${property_name} ON ${db}.${table} (${property_name})`);
+            }
+          } catch (err) {
+            throw console.error(`IndexJSONPropertyInDB tried to index: ${property_name} in table: ${table} but failed with: ${err.message}`);
+          }
+        }
+      }
+    },
+    // unlike the JSON version, this one is just a normal index on a column
     IndexPropertyInDB: {
       method: function (table, property_name) {
         let db = this.selectedDB;
         if (db) {
           try {
+            // if the table is a `database.table` then we need to index the property of the table
+            if (table.includes('.')) {
+              table = table.split('.')[1];
+            }
             if (IsNode()) {
-              db.prepare(`CREATE INDEX IF NOT EXISTS idx_${table}_${property_name} ON ${table} (json_extract(data, '$.${property_name}'))`).run();
+              db.prepare(`CREATE INDEX IF NOT EXISTS idx_${table}_${property_name} ON ${table} (${property_name})`).run();
             } else {
               alasql(`CREATE INDEX IF NOT EXISTS idx_${table}_${property_name} ON ${db}.${table} (${property_name})`);
             }

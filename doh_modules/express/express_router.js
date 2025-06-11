@@ -631,6 +631,8 @@ Doh.Module('express_router_as_library', [
         //MARK: FollowRoute
         FollowRoute: async function (url, req, res, callback) {
             const routeInfo = this.FindRoute(url);
+
+            res.callback = callback;
             
             if (routeInfo) {
                 // Use existing tracking ID if present, otherwise generate new one
@@ -737,7 +739,15 @@ Doh.Module('express_router_as_library', [
 
 
         //MARK: SendJSON
-        SendJSON: async function (res, data, callback) {
+        SendJSON: async function (res, data, statusCodeOrCallback, callback) {
+            if(IsFunction(statusCodeOrCallback)) {
+                callback = statusCodeOrCallback;
+                res.status(200);
+            } else if(IsNumber(statusCodeOrCallback)) {
+                res.status(statusCodeOrCallback);
+            } else {
+                res.status(200);
+            }
             if(!IsFunction(callback)) {
                 // console.warn('SendJSON called with non-function callback:', callback);
                 callback = function(data) {
@@ -746,7 +756,6 @@ Doh.Module('express_router_as_library', [
             }
             if (!res.isSocket) {
                 if (!res.headersSent) {
-                    res.status(res.statusCode || 200);
                     res.setHeader('Content-Type', 'application/json');
         
                     await res.end(JSON.stringify(data));

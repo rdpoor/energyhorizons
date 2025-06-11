@@ -11,11 +11,13 @@ A standard Doh project provides a basic setup designed for modularity and robust
 ├── .doh/              # Internal Doh files (cache, manifests - generally leave alone)
 ├── .vscode/           # VS Code specific settings (e.g., launch configurations)
 │   └── launch.json
+├── dbs/               # Default git-ignored and express-ignored folder for SQLite files
 ├── doh_js/            # Core Doh runtime files provided by the framework
 │   └── manifests/     # Generated manifests for packages, patterns, etc.
 ├── doh_libs/          # Doh Package wappers for external libraries
 ├── doh_modules/       # DeployDoh.com official modules
 ├── modules/           # Standard location for your application's code (Custom Doh Packages/Modules)
+├── secrets/           # Git-managed, Express-ignored directory for generic secrets
 ├── .gitignore         # Standard Git ignore file pre-configured for Doh
 ├── boot.pod.yaml      # Base configuration settings loaded first (part of repo)
 ├── doh.js             # Main project entry point script

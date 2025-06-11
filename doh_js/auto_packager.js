@@ -1191,7 +1191,7 @@ async function shouldExposePackage(packageName, packagePath, compiledDohballMani
   const remoteDohballManifestEntry = compiledDohballManifests[packageName] || {};
 
   // extend ignored paths with Doh.pod.packager_ignore
-  ignoredPaths.push(...Doh.pod.packager_ignore);
+  Doh.meld_arrays(ignoredPaths, Doh.pod.packager_ignore);
 
   // if Doh.pod.dohball_deployment.expose_doh_js is true, then remove doh_js from the ignored paths
   if (Doh.pod.dohball_deployment?.expose_doh_js) {
