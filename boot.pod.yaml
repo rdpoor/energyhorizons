@@ -1,3 +1,4 @@
 pod_version: 0.0.1
 host_load:
   - hmr
+name: energyhorizons.com:prod
