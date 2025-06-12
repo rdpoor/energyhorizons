@@ -9,3 +9,4 @@ package-lock.json
 bun.lockb
 bun.lock
 pod.yaml
+.well-known/

@@ -794,8 +794,121 @@ class DohTools {
       await this.analyzePodSetting('dohball_host');
     }
   }
-  async showPodValue(setting) {
+  
+  async managePodValue(setting, value) {
+    if (value === undefined) {
+      // Show the current value
+      await this.analyzePodSetting(setting);
+      return;
+    }
+
+    // Set the value
+    const podPath = DohPath('/pod.yaml');
+    const { podYaml } = await this.analyzePodSetting(setting);
+
+    // Check for removal prefix
+    if (setting.startsWith('~~')) {
+      const actualSetting = setting.slice(2); // Remove ~~ prefix
+      this.removeNestedValue(podYaml, actualSetting);
+      
+      // Write the updated pod.yaml
+      await fsp.writeFile(podPath, YAML.stringify(podYaml));
+      console.log(`Removed from pod.yaml: ${actualSetting}`);
+      
+      // Recompile the pod
+      await Doh.run_packager(onlypack({
+        always_compile_pod: true
+      }));
+      
+      // Show the updated structure (try to show the parent if it exists)
+      const parentPath = actualSetting.includes('.') ? actualSetting.split('.').slice(0, -1).join('.') : '';
+      await this.analyzePodSetting(parentPath || actualSetting);
+      return;
+    }
+
+    // Parse and convert the value to appropriate type
+    let parsedValue = this.parseValue(value);
+
+    // Set the value using dot notation
+    this.setNestedValue(podYaml, setting, parsedValue);
+
+    // Write the updated pod.yaml
+    await fsp.writeFile(podPath, YAML.stringify(podYaml));
+    console.log(`Updated pod.yaml: ${setting} = ${JSON.stringify(parsedValue)}`);
+    
+    // Recompile the pod
+    await Doh.run_packager(onlypack({
+      always_compile_pod: true
+    }));
+    
+    // Show the updated value
     await this.analyzePodSetting(setting);
+  }
+
+  parseValue(value) {
+    // Handle boolean values
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    if (value === 'null') return null;
+    if (value === 'undefined') return undefined;
+
+    // Handle numbers
+    if (/^-?\d+$/.test(value)) {
+      return parseInt(value, 10);
+    }
+    if (/^-?\d*\.\d+$/.test(value)) {
+      return parseFloat(value);
+    }
+
+    // Handle quoted strings (remove quotes)
+    if ((value.startsWith('"') && value.endsWith('"')) || 
+        (value.startsWith("'") && value.endsWith("'"))) {
+      return value.slice(1, -1);
+    }
+
+    // Return as string
+    return value;
+  }
+
+  setNestedValue(obj, path, value) {
+    const keys = path.split('.');
+    let current = obj;
+
+    // Navigate to the parent of the target property
+    for (let i = 0; i < keys.length - 1; i++) {
+      const key = keys[i];
+      if (!(key in current) || typeof current[key] !== 'object' || current[key] === null) {
+        current[key] = {};
+      }
+      current = current[key];
+    }
+
+    // Set the final value
+    const finalKey = keys[keys.length - 1];
+    current[finalKey] = value;
+  }
+
+  removeNestedValue(obj, path) {
+    const keys = path.split('.');
+    let current = obj;
+
+    // Navigate to the parent of the target property
+    for (let i = 0; i < keys.length - 1; i++) {
+      const key = keys[i];
+      if (!(key in current) || typeof current[key] !== 'object' || current[key] === null) {
+        // Path doesn't exist, nothing to remove
+        return false;
+      }
+      current = current[key];
+    }
+
+    // Remove the final key
+    const finalKey = keys[keys.length - 1];
+    if (finalKey in current) {
+      delete current[finalKey];
+      return true;
+    }
+    return false;
   }
 
   async doRemovals() {
@@ -1934,7 +2047,7 @@ Doh.CLI('doh_js', {
   },
   'pod': {
     file: '/doh_js/dohtools.js',
-    help: 'Show the current value and inheritance chain of a pod setting (e.g., `doh pod express_config.port`)'
+    help: 'Show or set pod settings using dot notation (e.g., `doh pod express_config.port` to show, `doh pod express_config.port 3000` to set, `doh pod ~~express_config.port true` to remove)'
   },
   'inherits': {
     file: '/doh_js/dohtools.js',
@@ -2052,7 +2165,7 @@ async function runCoreCommand(passed_args, ...addl_args) {
       case 'reinstall':
         return tools.reinstallDohballs();
       case 'pod':
-        return tools.showPodValue(args[0]);
+        return tools.managePodValue(args[0], args[1]);
       case 'inherits':
         return tools.updatePodInherits(args);
       case 'host_load':

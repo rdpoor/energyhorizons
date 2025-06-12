@@ -37,8 +37,8 @@ Doh.Pod('managed_site', {
       heartbeat_interval: 'IsNumber'
     },
     endpoint: 'https://deploydoh.com',
-    token_storage_path: '/.doh/cloud_auth_token',
-    cloud_anchor_path: '/.doh/cloud-anchor.json',
+    token_storage_path: '/.doh/static/cloud_auth_token',
+    cloud_anchor_path: '/.doh/static/cloud-anchor.json',
     connection_timeout: 30000, // 30 seconds
     reconnect_interval: 5000,  // 5 seconds
     heartbeat_interval: 60000,  // 1 minute
@@ -94,6 +94,17 @@ Doh.Module('managed_site', [
 ], function (DohPath, Router, fsE, CryptoAPI, ioClient, managedSite, Users) {
   const fs = fsE;
   let fsp = fs.promises;
+
+  // look for the old cloud_auth_token and cloud-anchor.json files and move them to the new location
+  const oldTokenPath = DohPath('/.doh/cloud_auth_token');
+  const oldAnchorPath = DohPath('/.doh/cloud-anchor.json');
+  fsE.ensureDirSync(DohPath('/.doh/static'));
+  if (fs.existsSync(oldTokenPath)) {
+    fs.renameSync(oldTokenPath, DohPath('/.doh/static/cloud_auth_token'));
+  }
+  if (fs.existsSync(oldAnchorPath)) {
+    fs.renameSync(oldAnchorPath, DohPath('/.doh/static/cloud-anchor.json'));
+  }
 
   // --- Status API Route ---
   Router.AddRoute('/api/managed_site/status', [], async function (data, req, res, cb) {

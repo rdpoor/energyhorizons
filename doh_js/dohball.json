@@ -1,5 +1,5 @@
 {
-  "version": "0.2.57a",
+  "version": "0.2.58a",
   "removals": [
     "/docs/building/ajax.md",
     "/docs/building/database.md",
